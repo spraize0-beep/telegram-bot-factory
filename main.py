@@ -8,7 +8,7 @@ from telethon import TelegramClient, events, Button
 # --- البيانات الأساسية ---
 API_ID = 33595004
 API_HASH = 'cbd1066ed026997f2f4a7c4323b7bda7'
-FACTORY_BOT_TOKEN = '8537562802:AAHFIKUod1juj-utcMs2aYNMSsUEvbeKQKY'
+FACTORY_BOT_TOKEN = '8537562802:AAFO9_vXWlUnr68Z2d0gbpmqTeU2cTDtbUk'
 ADMIN_ID = 154919127
 DEVELOPER_USERNAME = "devazf"
 DB_FILE = 'factory_data.json'
@@ -21,7 +21,7 @@ PAYMENT_INFO = {
     'ton': 'UQAarGycIaNnngwNAQ1Tek32I3MGroiaeF6p6MxEadimfszt',
     'ltc': 'LZgafAodZxDmjM9Ri51ygZ6dU8UbxE2cPH'
 }
-PRICE = "300 جنيه / شهر"
+PRICE = " 6$ - 300 EG / شهر"
 
 # --- كود بوت النشر اللي هيتنسخ لكل عميل ---
 POSTER_BOT_CODE = '''
