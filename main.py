@@ -4,8 +4,6 @@ import os
 import subprocess
 from datetime import datetime, timedelta
 
-# مفيش أي Telethon هنا فوق
-
 API_ID = 33595004
 API_HASH = 'cbd1066ed026997f2f4a7c4323b7bda7'
 ADMIN_ID = 154919127
@@ -340,7 +338,8 @@ def load_db():
     return {
         'clients': {},
         'pending': {},
-        'processes': {}
+        'processes': {},
+        'coupons': {}
     }
 
 def save_db(db):
@@ -349,21 +348,21 @@ def save_db(db):
 
 async def run_factory_bot():
     from telethon import TelegramClient, events, Button
-    
+
     FACTORY_BOT_TOKEN = os.environ.get('FACTORY_BOT_TOKEN')
     DEVELOPER_USERNAME = os.environ.get('DEVELOPER_USERNAME')
-    
+
     if not FACTORY_BOT_TOKEN or not DEVELOPER_USERNAME:
         print("❌ ضيف FACTORY_BOT_TOKEN و DEVELOPER_USERNAME في Variables")
         return
-    
+
     if not os.path.exists(BOTS_FOLDER):
         os.makedirs(BOTS_FOLDER)
-    
+
     db = load_db()
     waiting_for = {}
     bot = TelegramClient('Factory_Bot', API_ID, API_HASH)
-    
+
     def is_sub(uid):
         uid = str(uid)
         if uid in db.get('clients', {}):
@@ -376,34 +375,73 @@ async def run_factory_bot():
                     pass
         return False
 
+    def get_days_left(uid):
+        uid = str(uid)
+        if uid in db.get('clients', {}):
+            try:
+                expiry = datetime.strptime(db['clients'][uid]['expiry'], '%Y-%m-%d')
+                delta = (expiry - datetime.now()).days
+                return max(0, delta)
+            except:
+                return 0
+        return 0
+
     def main_menu(uid):
         btns = []
         if is_sub(uid):
-            btns.append([Button.inline("🤖 بوتاتي", b"my_bots")])
+            btns.append([Button.inline("📊 لوحة تحكم بوتك", b"client_panel")])
         else:
-            btns.append([Button.inline("💳 اشترك الآن - 6$ - 300EG / شهر ", b"payment")])
+            btns.append([Button.inline("💳 اشترك الآن", b"payment")])
+            btns.append([Button.inline("🎁 كود خصم", b"enter_coupon")])
 
         if uid == ADMIN_ID:
-            btns.append([Button.inline("🔐 لوحة الأدمن", b"admin_panel")])
+            btns.append([Button.inline("🔐 لوحة تحكم المصنع", b"admin_panel")])
 
         btns.append([Button.url('👨‍💻 المبرمج', f'https://t.me/{DEVELOPER_USERNAME}')])
         return btns
 
+    def admin_panel():
+        total = len(db['clients'])
+        active = sum(1 for k in db['clients'].keys() if is_sub(k))
+        pending = len(db['pending'])
+        coupons = len(db.get('coupons', {}))
+        return [
+            [Button.inline(f"👥 العملاء: {total}", b"show_clients")],
+            [Button.inline(f"🟢 النشطين: {active}", b"show_active")],
+            [Button.inline(f"⏳ مدفوعات معلقة: {pending}", b"show_pending")],
+            [Button.inline(f"🎁 الكوبونات: {coupons}", b"manage_coupons")],
+            [Button.inline("➕ إضافة كوبون", b"add_coupon")],
+            [Button.inline("🔙 رجوع", b"back_main")]
+        ]
+
+    def client_panel(uid):
+        uid = str(uid)
+        client = db['clients'].get(uid, {})
+        status = "🟢 شغال" if uid in db.get('processes', {}) else "🔴 متوقف"
+        days = get_days_left(uid)
+        return [
+            [Button.inline(f"الحالة: {status}", b"none")],
+            [Button.inline(f"الأيام الباقية: {days}", b"none")],
+            [Button.inline("🔴 إيقاف البوت", b"stop_my_bot"), Button.inline("🟢 تشغيل البوت", b"start_my_bot")],
+            [Button.inline("🔄 تجديد الاشتراك", b"payment")],
+            [Button.inline("🔙 رجوع", b"back_main")]
+        ]
+
     @bot.on(events.NewMessage(pattern='/start'))
     async def start(event):
         uid = event.sender_id
-        msg = "🏭 **مصنع بوتات النشر التلقائي**\n\n"
+        msg = "🏭 **مصنع بوتات النشر التلقائي**\\n\\n"
 
         if is_sub(uid):
-            client = db['clients'][str(uid)]
-            msg += f"✅ **اشتراكك مفعل**\n📅 ينتهي: {client['expiry']}\n\n"
-            msg += "تقدر تشغل بوت النشر الخاص بيك من الزراير تحت 👇"
+            days = get_days_left(uid)
+            msg += f"✅ **اشتراكك مفعل**\\n📅 باقي: {days} يوم\\n\\n"
+            msg += "تحكم في بوتك من الزراير تحت 👇"
         else:
-            msg += "💡 **إزاي يشتغل؟**\n"
-            msg += "1. اعمل بوت من @BotFather وخد التوكن\n"
-            msg += "2. ادفع الاشتراك\n"
-            msg += "3. حط التوكن بتاعك\n"
-            msg += "4. مبروك بوتك اشتغل 24/7 🔥\n\n"
+            msg += "💡 **إزاي يشتغل؟**\\n"
+            msg += "1. اعمل بوت من @BotFather وخد التوكن\\n"
+            msg += "2. ادفع الاشتراك أو استخدم كود خصم\\n"
+            msg += "3. حط التوكن بتاعك\\n"
+            msg += "4. مبروك بوتك اشتغل 24/7 🔥\\n\\n"
             msg += f"💰 **السعر:** {PRICE}"
 
         await event.reply(msg, buttons=main_menu(uid))
@@ -412,13 +450,50 @@ async def run_factory_bot():
     async def handler(event):
         data, uid = event.data, event.sender_id
 
+        if data == b"back_main":
+            await event.edit("🏭 **المصنع**", buttons=main_menu(uid))
+            return
+
+        if data == b"client_panel":
+            if not is_sub(uid):
+                return await event.answer("اشترك أولاً", alert=True)
+            await event.edit("📊 **لوحة تحكم بوتك**", buttons=client_panel(uid))
+            return
+
+        if data == b"stop_my_bot":
+            uid_str = str(uid)
+            if uid_str in db.get('processes', {}):
+                try:
+                    os.kill(db['processes'][uid_str], 9)
+                    db['processes'].pop(uid_str, None)
+                    save_db(db)
+                    await event.answer("🛑 تم إيقاف بوتك", alert=True)
+                except:
+                    await event.answer("البوت متوقف بالفعل", alert=True)
+            await event.edit("📊 **لوحة تحكم بوتك**", buttons=client_panel(uid))
+            return
+
+        if data == b"start_my_bot":
+            uid_str = str(uid)
+            if uid_str not in db.get('processes', {}):
+                client = db['clients'].get(uid_str)
+                if client:
+                    bot_file = os.path.join(BOTS_FOLDER, f'bot_{uid_str}.py')
+                    if os.path.exists(bot_file):
+                        process = subprocess.Popen(['python', bot_file])
+                        db['processes'][uid_str] = process.pid
+                        save_db(db)
+                        await event.answer("🟢 تم تشغيل بوتك", alert=True)
+            await event.edit("📊 **لوحة تحكم بوتك**", buttons=client_panel(uid))
+            return
+
         if data == b"payment":
-            msg = f"💳 **الاشتراك الشهري**\n\n"
-            msg += "**الأسعار:**\n"
-            msg += "📱 فودافون كاش: **300 جنيه**\n"
-            msg += "💵 USDT: **6 دولار**\n"
-            msg += "💎 TON: **5 TON**\n"
-            msg += "⚡ LTC: **6 LTC**\n\n"
+            msg = f"💳 **الاشتراك الشهري**\\n\\n"
+            msg += "**الأسعار:**\\n"
+            msg += "📱 فودافون كاش: **300 جنيه**\\n"
+            msg += "💵 USDT: **6 دولار**\\n"
+            msg += "💎 TON: **5 TON**\\n"
+            msg += "⚡ LTC: **6 LTC**\\n\\n"
             msg += "**دوس على الزر عشان تنسخ العنوان:**"
             await event.edit(msg, buttons=[
                 [Button.inline("📱 نسخ فودافون كاش", b"copy_voda")],
@@ -430,56 +505,132 @@ async def run_factory_bot():
             ])
             return
 
+        if data == b"enter_coupon":
+            waiting_for[uid] = 'enter_coupon'
+            await event.edit("🎁 **ابعت كود الخصم**\\n\\nمثال: AZEF50")
+            return
+
         if data == b"copy_voda":
             await event.answer("📱 رقم فودافون كاش:", alert=True)
-            await event.respond(f"`{PAYMENT_INFO['vodafone']}`\n\nدوس على الرقم عشان تنسخه 👆")
+            await event.respond(f"`{PAYMENT_INFO['vodafone']}`\\n\\nدوس على الرقم عشان تنسخه 👆")
             return
         if data == b"copy_usdt":
             await event.answer("💵 عنوان USDT TRC20:", alert=True)
-            await event.respond(f"`{PAYMENT_INFO['usdt_trc20']}`\n\nدوس على العنوان عشان تنسخه 👆")
+            await event.respond(f"`{PAYMENT_INFO['usdt_trc20']}`\\n\\nدوس على العنوان عشان تنسخه 👆")
             return
         if data == b"copy_ton":
             await event.answer("💎 عنوان TON:", alert=True)
-            await event.respond(f"`{PAYMENT_INFO['ton']}`\n\nدوس على العنوان عشان تنسخه 👆")
+            await event.respond(f"`{PAYMENT_INFO['ton']}`\\n\\nدوس على العنوان عشان تنسخه 👆")
             return
         if data == b"copy_ltc":
             await event.answer("⚡ عنوان Litecoin:", alert=True)
-            await event.respond(f"`{PAYMENT_INFO['ltc']}`\n\nدوس على العنوان عشان تنسخه 👆")
+            await event.respond(f"`{PAYMENT_INFO['ltc']}`\\n\\nدوس على العنوان عشان تنسخه 👆")
             return
 
         if data == b"send_proof":
             db['pending'][str(uid)] = {'time': datetime.now().strftime('%Y-%m-%d %H:%M')}
             save_db(db)
-            await event.edit("📸 **ابعت سكرين شوت التحويل**\n\nبعد التأكيد هطلب منك توكن البوت")
-            return
-
-        if data == b"my_bots":
-            if not is_sub(uid):
-                return await event.answer("اشترك أولاً", alert=True)
-            client = db['clients'][str(uid)]
-            status = "🟢 شغال" if str(uid) in db.get('processes', {}) else "🔴 متوقف"
-            await event.edit(f"🤖 **بوتك**\n\nالحالة: {status}\nينتهي: {client['expiry']}", buttons=[[Button.inline("🔙 رجوع", b"back_main")]])
+            await event.edit("📸 **ابعت سكرين شوت التحويل**\\n\\nبعد التأكيد هطلب منك توكن البوت")
             return
 
         if data == b"admin_panel" and uid == ADMIN_ID:
             total = len(db['clients'])
-            active = len([c for c in db['clients'].values() if c['active']])
+            active = sum(1 for k in db['clients'].keys() if is_sub(k))
             pending = len(db['pending'])
-            msg = f"🔐 **لوحة التحكم**\n\n👥 العملاء: {total}\n🟢 النشطين: {active}\n⏳ معلق: {pending}"
+            coupons = len(db.get('coupons', {}))
+            msg = f"🔐 **لوحة تحكم المصنع**\\n\\n👥 كل العملاء: {total}\\n🟢 النشطين: {active}\\n⏳ مدفوعات معلقة: {pending}\\n🎁 الكوبونات: {coupons}"
+            await event.edit(msg, buttons=admin_panel())
+            return
+
+        if data == b"show_clients" and uid == ADMIN_ID:
+            clients = db.get('clients', {})
+            if not clients:
+                return await event.answer("لا يوجد عملاء", alert=True)
+            msg = "👥 **كل العملاء:**\\n\\n"
+            btns = []
+            for user_id, data in list(clients.items())[:10]:
+                status = "🟢" if is_sub(user_id) else "🔴"
+                days = get_days_left(user_id)
+                msg += f"{status} `{user_id}` - {days} يوم\\n"
+                btns.append([Button.inline(f"تحكم {user_id}", f"manage_{user_id}")])
+            btns.append([Button.inline("🔙 رجوع", b"admin_panel")])
+            await event.edit(msg, buttons=btns)
+            return
+
+        if data.startswith(b'manage_') and uid == ADMIN_ID:
+            user_id = data.decode().split('_')[1]
+            client = db['clients'].get(user_id, {})
+            status = "🟢 شغال" if user_id in db.get('processes', {}) else "🔴 متوقف"
+            days = get_days_left(user_id)
+            msg = f"👤 **العميل:** `{user_id}`\\n📅 ينتهي: {client.get('expiry', 'N/A')}\\n⏱️ باقي: {days} يوم\\n{status}"
             await event.edit(msg, buttons=[
-                [Button.inline("⏳ المدفوعات المعلقة", b"show_pending")],
-                [Button.inline("🔙 رجوع", b"back_main")]
+                [Button.inline("🔴 إيقاف بوته", f"admin_stop_{user_id}")],
+                [Button.inline("🟢 تشغيل بوته", f"admin_start_{user_id}")],
+                [Button.inline("➕ تمديد 30 يوم", f"extend_{user_id}")],
+                [Button.inline("🗑️ حذف العميل", f"delete_{user_id}")],
+                [Button.inline("🔙 رجوع", b"show_clients")]
             ])
+            return
+
+        if data.startswith(b'admin_stop_') and uid == ADMIN_ID:
+            user_id = data.decode().split('_')[2]
+            if user_id in db.get('processes', {}):
+                try:
+                    os.kill(db['processes'][user_id], 9)
+                    db['processes'].pop(user_id, None)
+                    save_db(db)
+                    await event.answer("تم إيقاف بوت العميل", alert=True)
+                except:
+                    pass
+            await event.edit("🔐 **لوحة تحكم المصنع**", buttons=admin_panel())
+            return
+
+        if data.startswith(b'admin_start_') and uid == ADMIN_ID:
+            user_id = data.decode().split('_')[2]
+            if user_id not in db.get('processes', {}):
+                bot_file = os.path.join(BOTS_FOLDER, f'bot_{user_id}.py')
+                if os.path.exists(bot_file):
+                    process = subprocess.Popen(['python', bot_file])
+                    db['processes'][user_id] = process.pid
+                    save_db(db)
+                    await event.answer("تم تشغيل بوت العميل", alert=True)
+            await event.edit("🔐 **لوحة تحكم المصنع**", buttons=admin_panel())
+            return
+
+        if data.startswith(b'extend_') and uid == ADMIN_ID:
+            user_id = data.decode().split('_')[1]
+            if user_id in db['clients']:
+                current = datetime.strptime(db['clients'][user_id]['expiry'], '%Y-%m-%d')
+                new_expiry = (max(current, datetime.now()) + timedelta(days=30)).strftime('%Y-%m-%d')
+                db['clients'][user_id]['expiry'] = new_expiry
+                save_db(db)
+                await event.answer(f"تم التمديد إلى {new_expiry}", alert=True)
+            await event.edit("🔐 **لوحة تحكم المصنع**", buttons=admin_panel())
+            return
+
+        if data.startswith(b'delete_') and uid == ADMIN_ID:
+            user_id = data.decode().split('_')[1]
+            if user_id in db['clients']:
+                if user_id in db.get('processes', {}):
+                    try:
+                        os.kill(db['processes'][user_id], 9)
+                    except:
+                        pass
+                db['clients'].pop(user_id, None)
+                db['processes'].pop(user_id, None)
+                save_db(db)
+                await event.answer("تم حذف العميل", alert=True)
+            await event.edit("🔐 **لوحة تحكم المصنع**", buttons=admin_panel())
             return
 
         if data == b"show_pending" and uid == ADMIN_ID:
             pending = db.get('pending', {})
             if not pending:
                 return await event.answer("لا يوجد", alert=True)
-            msg = "⏳ **المدفوعات المعلقة:**\n\n"
+            msg = "⏳ **المدفوعات المعلقة:**\\n\\n"
             btns = []
             for user_id in pending.keys():
-                msg += f"👤 `{user_id}`\n"
+                msg += f"👤 `{user_id}`\\n"
                 btns.append([Button.inline(f"✅ تفعيل {user_id}", f"approve_{user_id}")])
             btns.append([Button.inline("🔙 رجوع", b"admin_panel")])
             await event.edit(msg, buttons=btns)
@@ -488,14 +639,26 @@ async def run_factory_bot():
         if data.startswith(b'approve_') and uid == ADMIN_ID:
             user_id = data.decode().split('_')[1]
             db['pending'].pop(user_id, None)
-            await event.edit(f"✅ تم التأكيد\n\nاطلب من `{user_id}` يبعت توكن البوت")
-            await bot.send_message(int(user_id), "✅ **تم تأكيد الدفع!**\n\nدلوقتي ابعت توكن البوت بتاعك من @BotFather")
+            await event.edit(f"✅ تم التأكيد\\n\\nاطلب من `{user_id}` يبعت توكن البوت")
+            await bot.send_message(int(user_id), "✅ **تم تأكيد الدفع!**\\n\\nدلوقتي ابعت توكن البوت بتاعك من @BotFather")
             waiting_for[int(user_id)] = 'paid_token'
             save_db(db)
             return
 
-        if data == b"back_main":
-            await event.edit("🏭 **المصنع**", buttons=main_menu(uid))
+        if data == b"manage_coupons" and uid == ADMIN_ID:
+            coupons = db.get('coupons', {})
+            if not coupons:
+                return await event.answer("لا يوجد كوبونات", alert=True)
+            msg = "🎁 **الكوبونات:**\\n\\n"
+            for code, data in coupons.items():
+                msg += f"`{code}` - {data['discount']}% - {data['uses']}/{data['max_uses']}\\n"
+            await event.edit(msg, buttons=[[Button.inline("🔙 رجوع", b"admin_panel")]])
+            return
+
+        if data == b"add_coupon" and uid == ADMIN_ID:
+            waiting_for[uid] = 'add_coupon_code'
+            await event.edit("🎁 **إضافة كوبون**\\n\\nابعت الكود: مثال AZEF50")
+            return
 
     @bot.on(events.NewMessage)
     async def inputs(event):
@@ -516,6 +679,52 @@ async def run_factory_bot():
             expiry = (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d')
             await create_client_bot(uid, text, expiry, DEVELOPER_USERNAME)
             waiting_for.pop(uid, None)
+            return
+
+        if step == 'enter_coupon':
+            coupon = text.upper()
+            coupons = db.get('coupons', {})
+            if coupon in coupons:
+                c = coupons[coupon]
+                if c['uses'] < c['max_uses']:
+                    discount = c['discount']
+                    db['pending'][str(uid)] = {'time': datetime.now().strftime('%Y-%m-%d %H:%M'), 'coupon': coupon, 'discount': discount}
+                    c['uses'] += 1
+                    save_db(db)
+                    await event.reply(f"✅ **تم تطبيق كوبون {coupon}**\\n💰 خصم: {discount}%\\n\\nدلوقتي ابعت سكرين التحويل بعد الخصم")
+                else:
+                    await event.reply("❌ الكوبون خلص")
+            else:
+                await event.reply("❌ كود غير صحيح")
+            waiting_for.pop(uid, None)
+            return
+
+        if step == 'add_coupon_code' and uid == ADMIN_ID:
+            waiting_for[uid] = f'add_coupon_discount_{text.upper()}'
+            await event.reply(f"✅ الكود: `{text.upper()}`\\n\\nابعت نسبة الخصم: مثال 50")
+            return
+
+        if step.startswith('add_coupon_discount_') and uid == ADMIN_ID:
+            code = step.split('_')[-1]
+            try:
+                discount = int(text)
+                waiting_for[uid] = f'add_coupon_uses_{code}_{discount}'
+                await event.reply(f"✅ الخصم: {discount}%\\n\\nابعت عدد الاستخدامات: مثال 10")
+            except:
+                await event.reply("❌ رقم غير صحيح")
+            return
+
+        if step.startswith('add_coupon_uses_') and uid == ADMIN_ID:
+            parts = step.split('_')
+            code, discount = parts[3], int(parts[4])
+            try:
+                max_uses = int(text)
+                db['coupons'][code] = {'discount': discount, 'uses': 0, 'max_uses': max_uses}
+                save_db(db)
+                await event.reply(f"✅ **تم إضافة الكوبون**\\n\\nالكود: `{code}`\\nالخصم: {discount}%\\nالاستخدامات: {max_uses}")
+                waiting_for.pop(uid, None)
+            except:
+                await event.reply("❌ رقم غير صحيح")
             return
 
     async def create_client_bot(user_id, bot_token, expiry, dev_username):
@@ -549,20 +758,20 @@ async def run_factory_bot():
 
             await bot.send_message(
                 user_id,
-                f"🎉 **مبروك! بوتك اشتغل**\n\n"
-                f"✅ التوكن: `{bot_token[:20]}...`\n"
-                f"📅 ينتهي: {expiry}\n"
-                f"💳 اشتراك مدفوع\n\n"
+                f"🎉 **مبروك! بوتك اشتغل**\\n\\n"
+                f"✅ التوكن: `{bot_token[:20]}...`\\n"
+                f"📅 ينتهي: {expiry}\\n"
+                f"💳 اشتراك مدفوع\\n\\n"
                 f"روح لبوتك وابعت /start عشان تبدأ 🚀",
                 buttons=main_menu(user_id)
             )
 
-            await bot.send_message(ADMIN_ID, f"🆕 **عميل جديد**\n\n👤 {user_id}\n📅 {expiry}")
+            await bot.send_message(ADMIN_ID, f"🆕 **عميل جديد**\\n\\n👤 {user_id}\\n📅 {expiry}")
 
         except Exception as e:
             await bot.send_message(user_id, f"❌ خطأ في تشغيل البوت: {str(e)}")
             await bot.send_message(ADMIN_ID, f"❌ خطأ في بوت {user_id}: {str(e)}")
-    
+
     await bot.start(bot_token=FACTORY_BOT_TOKEN)
     print("🏭 مصنع البوتات اشتغل!")
     await bot.run_until_disconnected()
