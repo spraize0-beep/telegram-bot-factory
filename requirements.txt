@@ -1,4 +1,2 @@
 telethon
 qrcode[pil]
-pytz
-aiohttp
