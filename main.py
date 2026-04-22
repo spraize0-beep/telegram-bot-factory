@@ -5,27 +5,16 @@ import subprocess
 from datetime import datetime, timedelta
 from telethon import TelegramClient, events, Button
 
-# --- البيانات الأساسية من المتغيرات ---
+# --- البيانات الأساسية ---
 API_ID = 33595004
 API_HASH = 'cbd1066ed026997f2f4a7c4323b7bda7'
-FACTORY_BOT_TOKEN = None
-DEVELOPER_USERNAME = None
-
-async def main():
-    global FACTORY_BOT_TOKEN, DEVELOPER_USERNAME
-    FACTORY_BOT_TOKEN = os.environ.get('FACTORY_BOT_TOKEN')
-    DEVELOPER_USERNAME = os.environ.get('DEVELOPER_USERNAME')
-    
-    if not FACTORY_BOT_TOKEN:
-        print("❌ FACTORY_BOT_TOKEN مش متضاف في Variables")
-        return
-        
-    await bot.start(bot_token=FACTORY_BOT_TOKEN)
-    print("🏭 مصنع البوتات اشتغل!")
-    await bot.run_until_disconnected()
 ADMIN_ID = 154919127
 DB_FILE = 'factory_data.json'
 BOTS_FOLDER = 'user_bots'
+
+# سيب دول فاضيين - هنقراهم جوه main()
+FACTORY_BOT_TOKEN = None
+DEVELOPER_USERNAME = None
 
 # --- بيانات الدفع ---
 PAYMENT_INFO = {
@@ -34,7 +23,7 @@ PAYMENT_INFO = {
     'ton': 'UQAarGycIaNnngwNAQ1Tek32I3MGroiaeF6p6MxEadimfszt',
     'ltc': 'LZgafAodZxDmjM9Ri51ygZ6dU8UbxE2cPH'
 }
-PRICE = "6$ - 300EG / شـهـر"
+PRICE = "6$ - 300EG / شهر"
 
 # --- كود بوت النشر اللي هيتنسخ لكل عميل ---
 POSTER_BOT_CODE = '''
@@ -48,8 +37,8 @@ from telethon.sessions import StringSession
 from telethon.tl.types import Channel, Chat, MessageEntityCustomEmoji
 from telethon.errors import SessionPasswordNeededError, FloodWaitError
 
-API_ID = 32882065
-API_HASH = '4967b1747a5c0b3f8b12d0f61ec606cf'
+API_ID = 33595004
+API_HASH = 'cbd1066ed026997f2f4a7c4323b7bda7'
 BOT_TOKEN = '{BOT_TOKEN}'
 ADMIN_ID = {ADMIN_ID}
 DEVELOPER_USERNAME = "{DEVELOPER_USERNAME}"
@@ -575,6 +564,17 @@ async def create_client_bot(user_id, bot_token, expiry):
         await bot.send_message(ADMIN_ID, f"❌ خطأ في بوت {user_id}: {str(e)}")
 
 async def main():
+    global FACTORY_BOT_TOKEN, DEVELOPER_USERNAME
+    FACTORY_BOT_TOKEN = os.environ.get('FACTORY_BOT_TOKEN')
+    DEVELOPER_USERNAME = os.environ.get('DEVELOPER_USERNAME')
+    
+    if not FACTORY_BOT_TOKEN:
+        print("❌ FACTORY_BOT_TOKEN مش موجود في Variables")
+        return
+    if not DEVELOPER_USERNAME:
+        print("❌ DEVELOPER_USERNAME مش موجود في Variables")
+        return
+        
     await bot.start(bot_token=FACTORY_BOT_TOKEN)
     print("🏭 مصنع البوتات اشتغل!")
     await bot.run_until_disconnected()
