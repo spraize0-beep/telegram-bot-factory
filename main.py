@@ -438,10 +438,15 @@ async def run_factory_bot():
             msg += "تحكم في بوتك من الزراير تحت 👇"
         else:
             msg += "💡 **إزاي تنصب بوت ؟**"
+            
             msg += "1. اعمل بوت من @BotFather وخد التوكن"
+            
             msg += "2. ادفع الاشتراك أو استخدم كود خصم"
+            
             msg += "3. حط التوكن بتاعك"
-            msg += "4. مبروك بوتك اشتغل 24/7 🔥"
+            
+            msg += "4. مبروك بوتك اشتغل 🔥"
+            
             msg += f"💰 **السعر:** {PRICE}"
 
         await event.reply(msg, buttons=main_menu(uid))
@@ -507,24 +512,24 @@ async def run_factory_bot():
 
         if data == b"enter_coupon":
             waiting_for[uid] = 'enter_coupon'
-            await event.edit("🎁 **ابعت كود الخصم**\\n\\nمثال: AZEF50")
+            await event.edit("🎁 **ابعت كود الخصم**مثال: AZEF50")
             return
 
         if data == b"copy_voda":
             await event.answer("📱 رقم فودافون كاش:", alert=True)
-            await event.respond(f"`{PAYMENT_INFO['vodafone']}`\\n\\nدوس على الرقم عشان تنسخه 👆")
+            await event.respond(f"`{PAYMENT_INFO['vodafone']}`دوس على الرقم عشان تنسخه 👆")
             return
         if data == b"copy_usdt":
             await event.answer("💵 عنوان USDT TRC20:", alert=True)
-            await event.respond(f"`{PAYMENT_INFO['usdt_trc20']}`\\n\\nدوس على العنوان عشان تنسخه 👆")
+            await event.respond(f"`{PAYMENT_INFO['usdt_trc20']}`دوس على العنوان عشان تنسخه 👆")
             return
         if data == b"copy_ton":
             await event.answer("💎 عنوان TON:", alert=True)
-            await event.respond(f"`{PAYMENT_INFO['ton']}`\\n\\nدوس على العنوان عشان تنسخه 👆")
+            await event.respond(f"`{PAYMENT_INFO['ton']}`دوس على العنوان عشان تنسخه 👆")
             return
         if data == b"copy_ltc":
             await event.answer("⚡ عنوان Litecoin:", alert=True)
-            await event.respond(f"`{PAYMENT_INFO['ltc']}`\\n\\nدوس على العنوان عشان تنسخه 👆")
+            await event.respond(f"`{PAYMENT_INFO['ltc']}`دوس على العنوان عشان تنسخه 👆")
             return
 
         if data == b"send_proof":
@@ -533,7 +538,7 @@ async def run_factory_bot():
             user = await event.get_sender()
             username = f"@{user.username}" if user.username else "بدون يوزر"
             await bot.send_message(ADMIN_ID, f"💰 **دفعة جديدة معلقة**\\n\\n👤 الاسم: {user.first_name}\\n🔗 اليوزر: {username}\\n🆔 الآي دي: `{uid}`\\n\\nالعميل ضغط 'أرسلت المبلغ' ومستني السكرين")
-            await event.edit("📸 **ابعت سكرين شوت التحويل دلوقتي**\\n\\nبعد التأكيد هطلب منك توكن البوت")
+            await event.edit("📸 **ابعت سكرين شوت التحويل دلوقتي**بعد التأكيد هطلب منك توكن البوت")
             return
 
         if data == b"admin_panel" and uid == ADMIN_ID:
@@ -541,7 +546,7 @@ async def run_factory_bot():
             active = sum(1 for k in db['clients'].keys() if is_sub(k))
             pending = len(db['pending'])
             coupons = len(db.get('coupons', {}))
-            msg = f"🔐 **لوحة تحكم المصنع**\\n\\n👥 كل العملاء: {total}\\n\\n🟢 النشطين: {active}\\n\\n⏳ مدفوعات معلقة: {pending}\\n\\n🎁 الكوبونات: {coupons}"
+            msg = f"🔐 **لوحة تحكم المصنع**👥 كل العملاء: {total}\\n\\n🟢 النشطين: {active}\\n\\n⏳ مدفوعات معلقة: {pending}\\n\\n🎁 الكوبونات: {coupons}"
             await event.edit(msg, buttons=admin_panel())
             return
 
@@ -554,7 +559,7 @@ async def run_factory_bot():
             for user_id, data in list(clients.items())[:10]:
                 status = "🟢" if is_sub(user_id) else "🔴"
                 days = get_days_left(user_id)
-                msg += f"{status} `{user_id}` - {days} يوم\\n\\n"
+                msg += f"{status} `{user_id}` - {days} يوم"
                 btns.append([Button.inline(f"تحكم {user_id}", f"manage_{user_id}")])
             btns.append([Button.inline("🔙 رجوع", b"admin_panel")])
             await event.edit(msg, buttons=btns)
@@ -565,7 +570,7 @@ async def run_factory_bot():
             client = db['clients'].get(user_id, {})
             status = "🟢 شغال" if user_id in db.get('processes', {}) else "🔴 متوقف"
             days = get_days_left(user_id)
-            msg = f"👤 **العميل:** `{user_id}`\\n\\n📅 ينتهي: {client.get('expiry', 'N/A')}\\n\\n⏱️ باقي: {days} يوم\\n\\n{status}"
+            msg = f"👤 **العميل:** `{user_id}`📅 ينتهي: {client.get('expiry', 'N/A')}⏱️ باقي: {days} يوم{status}"
             await event.edit(msg, buttons=[
                 [Button.inline("🔴 إيقاف بوته", f"admin_stop_{user_id}")],
                 [Button.inline("🟢 تشغيل بوته", f"admin_start_{user_id}")],
@@ -630,10 +635,10 @@ async def run_factory_bot():
             pending = db.get('pending', {})
             if not pending:
                 return await event.answer("لا يوجد", alert=True)
-            msg = "⏳ **المدفوعات المعلقة:**\\n\\n"
+            msg = "⏳ **المدفوعات المعلقة:**"
             btns = []
             for user_id in pending.keys():
-                msg += f"👤 `{user_id}`\\n\\n"
+                msg += f"👤 `{user_id}`"
                 btns.append([Button.inline(f"✅ تفعيل {user_id}", f"approve_{user_id}")])
             btns.append([Button.inline("🔙 رجوع", b"admin_panel")])
             await event.edit(msg, buttons=btns)
@@ -643,7 +648,7 @@ async def run_factory_bot():
             user_id = data.decode().split('_')[1]
             db['pending'].pop(user_id, None)
             await event.edit(f"✅ تم التأكيد اطلب من `{user_id}` يبعت توكن البوت")
-            await bot.send_message(int(user_id), "✅ **تم تأكيد الدفع!**\\n\\nدلوقتي ابعت توكن البوت بتاعك من @BotFather")
+            await bot.send_message(int(user_id), "✅ **تم تأكيد الدفع!**دلوقتي ابعت توكن البوت بتاعك من @BotFather")
             waiting_for[int(user_id)] = 'paid_token'
             save_db(db)
             return
@@ -654,7 +659,7 @@ async def run_factory_bot():
                 return await event.answer("لا يوجد كوبونات", alert=True)
             msg = "🎁 **الكوبونات:**"
             for code, data in coupons.items():
-                msg += f"`{code}` - {data['discount']}% - {data['uses']}/{data['max_uses']}\\n\\n"
+                msg += f"`{code}` - {data['discount']}% - {data['uses']}/{data['max_uses']}"
             await event.edit(msg, buttons=[[Button.inline("🔙 رجوع", b"admin_panel")]])
             return
 
@@ -670,7 +675,7 @@ async def run_factory_bot():
             if event.photo and str(uid) in db.get('pending', {}):
                 user = await event.get_sender()
                 username = f"@{user.username}" if user.username else "بدون يوزر"
-                await bot.send_message(ADMIN_ID, f"📸 **سكرين تحويل وصل**\\n\\n👤 الاسم: {user.first_name}\\n🔗 اليوزر: {username}\\n🆔 الآي دي: `{uid}`", file=event.photo)
+                await bot.send_message(ADMIN_ID, f"📸 **سكرين تحويل وصل**👤 الاسم: {user.first_name}🔗 اليوزر: {username}🆔 الآي دي: `{uid}`", file=event.photo)
                 await event.reply("✅ وصل السكرين للمطور جاري المراجعة...")
                 return
             return
@@ -768,10 +773,15 @@ async def run_factory_bot():
             await bot.send_message(
                 user_id,
                 f"🎉 **مبروك! بوتك اشتغل**"
+                
                 f"✅ التوكن: `{bot_token[:20]}...`"
+                
                 f"📅 ينتهي: {expiry}"
+                
                 f"💳 اشتراك مدفوع"
+                
                 f"روح لبوتك وابعت /start عشان تبدأ 🚀",
+                
                 buttons=main_menu(user_id)
             )
 
