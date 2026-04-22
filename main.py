@@ -3,20 +3,15 @@ import json
 import os
 import subprocess
 from datetime import datetime, timedelta
-from telethon import TelegramClient, events, Button
 
-# --- البيانات الأساسية ---
+# مفيش أي Telethon هنا فوق
+
 API_ID = 33595004
 API_HASH = 'cbd1066ed026997f2f4a7c4323b7bda7'
 ADMIN_ID = 154919127
 DB_FILE = 'factory_data.json'
 BOTS_FOLDER = 'user_bots'
 
-# سيب دول فاضيين - هنقراهم جوه main()
-FACTORY_BOT_TOKEN = None
-DEVELOPER_USERNAME = None
-
-# --- بيانات الدفع ---
 PAYMENT_INFO = {
     'vodafone': '01105802898',
     'usdt_trc20': 'TWunFGpcDDc63GTDdNxyDHjZ4VdPS6AsMh',
@@ -25,7 +20,6 @@ PAYMENT_INFO = {
 }
 PRICE = "6$ - 300EG / شهر"
 
-# --- كود بوت النشر اللي هيتنسخ لكل عميل ---
 POSTER_BOT_CODE = '''
 import asyncio
 import json
@@ -336,8 +330,6 @@ if __name__ == '__main__':
     asyncio.run(main())
 '''
 
-bot = TelegramClient('Factory_Bot', API_ID, API_HASH)
-
 def load_db():
     if os.path.exists(DB_FILE):
         try:
@@ -351,233 +343,229 @@ def load_db():
         'processes': {}
     }
 
-def save_db():
+def save_db(db):
     with open(DB_FILE, 'w', encoding='utf-8') as f:
         json.dump(db, f, ensure_ascii=False, indent=2)
 
-db = load_db()
-waiting_for = {}
-
-if not os.path.exists(BOTS_FOLDER):
-    os.makedirs(BOTS_FOLDER)
-
-def is_sub(uid):
-    uid = str(uid)
-    if uid in db.get('clients', {}):
-        client = db['clients'][uid]
-        if client['active']:
-            try:
-                expiry = datetime.strptime(client['expiry'], '%Y-%m-%d')
-                return expiry > datetime.now()
-            except:
-                pass
-    return False
-
-def main_menu(uid):
-    btns = []
-    if is_sub(uid):
-        btns.append([Button.inline("🤖 بوتاتي", b"my_bots")])
-        btns.append([Button.inline("📊 حالة البوت", b"bot_status")])
-    else:
-        btns.append([Button.inline("💳 اشترك الآن - 300 جنيه", b"payment")])
-
-    if uid == ADMIN_ID:
-        btns.append([Button.inline("🔐 لوحة الأدمن", b"admin_panel")])
-
-    btns.append([Button.url('👨‍💻 المبرمج', f'https://t.me/{DEVELOPER_USERNAME}')])
-    return btns
-
-@bot.on(events.NewMessage(pattern='/start'))
-async def start(event):
-    uid = event.sender_id
-    msg = "🏭 **مصنع بوتات النشر التلقائي**\n\n"
-
-    if is_sub(uid):
-        client = db['clients'][str(uid)]
-        msg += f"✅ **اشتراكك مفعل**\n📅 ينتهي: {client['expiry']}\n\n"
-        msg += "تقدر تشغل بوت النشر الخاص بيك من الزراير تحت 👇"
-    else:
-        msg += "💡 **إزاي يشتغل؟**\n"
-        msg += "1. اعمل بوت من @BotFather وخد التوكن\n"
-        msg += "2. ادفع الاشتراك\n"
-        msg += "3. حط التوكن بتاعك\n"
-        msg += "4. مبروك بوتك اشتغل 24/7 🔥\n\n"
-        msg += f"💰 **السعر:** {PRICE}"
-
-    await event.reply(msg, buttons=main_menu(uid))
-
-@bot.on(events.CallbackQuery)
-async def handler(event):
-    data, uid = event.data, event.sender_id
-
-    if data == b"payment":
-        msg = f"💳 **الاشتراك الشهري**\n\n"
-        msg += "**الأسعار:**\n"
-        msg += "📱 فودافون كاش: **300 جنيه**\n"
-        msg += "💵 USDT: **6 دولار**\n"
-        msg += "💎 TON: **5 TON**\n"
-        msg += "⚡ LTC: **6 LTC**\n\n"
-        msg += "**دوس على الزر عشان تنسخ العنوان:**"
-        await event.edit(msg, buttons=[
-            [Button.inline("📱 نسخ فودافون كاش", b"copy_voda")],
-            [Button.inline("💵 نسخ USDT TRC20", b"copy_usdt")],
-            [Button.inline("💎 نسخ TON", b"copy_ton")],
-            [Button.inline("⚡ نسخ Litecoin", b"copy_ltc")],
-            [Button.inline("✅ أرسلت المبلغ", b"send_proof")],
-            [Button.inline("🔙 رجوع", b"back_main")]
-        ])
-        return
-
-    # أزرار النسخ
-    if data == b"copy_voda":
-        await event.answer("📱 رقم فودافون كاش:", alert=True)
-        await event.respond(f"`{PAYMENT_INFO['vodafone']}`\n\nدوس على الرقم عشان تنسخه 👆")
-        return
-    if data == b"copy_usdt":
-        await event.answer("💵 عنوان USDT TRC20:", alert=True)
-        await event.respond(f"`{PAYMENT_INFO['usdt_trc20']}`\n\nدوس على العنوان عشان تنسخه 👆")
-        return
-    if data == b"copy_ton":
-        await event.answer("💎 عنوان TON:", alert=True)
-        await event.respond(f"`{PAYMENT_INFO['ton']}`\n\nدوس على العنوان عشان تنسخه 👆")
-        return
-    if data == b"copy_ltc":
-        await event.answer("⚡ عنوان Litecoin:", alert=True)
-        await event.respond(f"`{PAYMENT_INFO['ltc']}`\n\nدوس على العنوان عشان تنسخه 👆")
-        return
-
-    if data == b"send_proof":
-        db['pending'][str(uid)] = {'time': datetime.now().strftime('%Y-%m-%d %H:%M')}
-        save_db()
-        await event.edit("📸 **ابعت سكرين شوت التحويل**\n\nبعد التأكيد هطلب منك توكن البوت")
-        return
-
-    if data == b"my_bots":
-        if not is_sub(uid):
-            return await event.answer("اشترك أولاً", alert=True)
-        client = db['clients'][str(uid)]
-        status = "🟢 شغال" if str(uid) in db.get('processes', {}) else "🔴 متوقف"
-        await event.edit(f"🤖 **بوتك**\n\nالحالة: {status}\nينتهي: {client['expiry']}", buttons=[[Button.inline("🔙 رجوع", b"back_main")]])
-        return
-
-    if data == b"admin_panel" and uid == ADMIN_ID:
-        total = len(db['clients'])
-        active = len([c for c in db['clients'].values() if c['active']])
-        pending = len(db['pending'])
-        msg = f"🔐 **لوحة التحكم**\n\n👥 العملاء: {total}\n🟢 النشطين: {active}\n⏳ معلق: {pending}"
-        await event.edit(msg, buttons=[
-            [Button.inline("⏳ المدفوعات المعلقة", b"show_pending")],
-            [Button.inline("👥 كل العملاء", b"show_clients")],
-            [Button.inline("🔙 رجوع", b"back_main")]
-        ])
-        return
-
-    if data == b"show_pending" and uid == ADMIN_ID:
-        pending = db.get('pending', {})
-        if not pending:
-            return await event.answer("لا يوجد", alert=True)
-        msg = "⏳ **المدفوعات المعلقة:**\n\n"
-        btns = []
-        for user_id in pending.keys():
-            msg += f"👤 `{user_id}`\n"
-            btns.append([Button.inline(f"✅ تفعيل {user_id}", f"approve_{user_id}")])
-        btns.append([Button.inline("🔙 رجوع", b"admin_panel")])
-        await event.edit(msg, buttons=btns)
-        return
-
-    if data.startswith(b'approve_') and uid == ADMIN_ID:
-        user_id = data.decode().split('_')[1]
-        db['pending'].pop(user_id, None)
-        await event.edit(f"✅ تم التأكيد\n\nاطلب من `{user_id}` يبعت توكن البوت")
-        await bot.send_message(int(user_id), "✅ **تم تأكيد الدفع!**\n\nدلوقتي ابعت توكن البوت بتاعك من @BotFather")
-        waiting_for[int(user_id)] = 'paid_token'
-        save_db()
-        return
-
-    if data == b"back_main":
-        await event.edit("🏭 **المصنع**", buttons=main_menu(uid))
-
-@bot.on(events.NewMessage)
-async def inputs(event):
-    uid = event.sender_id
-    if not event.text or event.text.startswith('/'):
-        return
-
-    step = waiting_for.get(uid)
-    if not step:
-        return
-
-    text = event.text.strip()
-
-    if step == 'paid_token':
-        if ':' not in text or len(text) < 40:
-            return await event.reply("❌ التوكن غلط!")
-
-        expiry = (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d')
-        await create_client_bot(uid, text, expiry)
-        waiting_for.pop(uid, None)
-        return
-
-async def create_client_bot(user_id, bot_token, expiry):
-    uid = str(user_id)
-
-    db['clients'][uid] = {
-        'token': bot_token,
-        'expiry': expiry,
-        'active': True,
-        'trial': False
-    }
-    save_db()
-
-    bot_file = os.path.join(BOTS_FOLDER, f'bot_{uid}.py')
-    bot_db_file = os.path.join(BOTS_FOLDER, f'db_{uid}.json')
-
-    code = POSTER_BOT_CODE.format(
-        BOT_TOKEN=bot_token,
-        ADMIN_ID=user_id,
-        DEVELOPER_USERNAME=DEVELOPER_USERNAME,
-        DB_FILE=bot_db_file
-    )
-
-    with open(bot_file, 'w', encoding='utf-8') as f:
-        f.write(code)
-
-    try:
-        process = subprocess.Popen(['python', bot_file])
-        db['processes'][uid] = process.pid
-        save_db()
-
-        await bot.send_message(
-            user_id,
-            f"🎉 **مبروك! بوتك اشتغل**\n\n"
-            f"✅ التوكن: `{bot_token[:20]}...`\n"
-            f"📅 ينتهي: {expiry}\n"
-            f"💳 اشتراك مدفوع\n\n"
-            f"روح لبوتك وابعت /start عشان تبدأ 🚀",
-            buttons=main_menu(user_id)
-        )
-
-        await bot.send_message(ADMIN_ID, f"🆕 **عميل جديد**\n\n👤 {user_id}\n📅 {expiry}")
-
-    except Exception as e:
-        await bot.send_message(user_id, f"❌ خطأ في تشغيل البوت: {str(e)}")
-        await bot.send_message(ADMIN_ID, f"❌ خطأ في بوت {user_id}: {str(e)}")
-
-async def main():
-    global FACTORY_BOT_TOKEN, DEVELOPER_USERNAME
+async def run_factory_bot():
+    from telethon import TelegramClient, events, Button
+    
     FACTORY_BOT_TOKEN = os.environ.get('FACTORY_BOT_TOKEN')
     DEVELOPER_USERNAME = os.environ.get('DEVELOPER_USERNAME')
     
-    if not FACTORY_BOT_TOKEN:
-        print("❌ FACTORY_BOT_TOKEN مش موجود في Variables")
+    if not FACTORY_BOT_TOKEN or not DEVELOPER_USERNAME:
+        print("❌ ضيف FACTORY_BOT_TOKEN و DEVELOPER_USERNAME في Variables")
         return
-    if not DEVELOPER_USERNAME:
-        print("❌ DEVELOPER_USERNAME مش موجود في Variables")
-        return
-        
+    
+    if not os.path.exists(BOTS_FOLDER):
+        os.makedirs(BOTS_FOLDER)
+    
+    db = load_db()
+    waiting_for = {}
+    bot = TelegramClient('Factory_Bot', API_ID, API_HASH)
+    
+    def is_sub(uid):
+        uid = str(uid)
+        if uid in db.get('clients', {}):
+            client = db['clients'][uid]
+            if client['active']:
+                try:
+                    expiry = datetime.strptime(client['expiry'], '%Y-%m-%d')
+                    return expiry > datetime.now()
+                except:
+                    pass
+        return False
+
+    def main_menu(uid):
+        btns = []
+        if is_sub(uid):
+            btns.append([Button.inline("🤖 بوتاتي", b"my_bots")])
+        else:
+            btns.append([Button.inline("💳 اشترك الآن - 300 جنيه", b"payment")])
+
+        if uid == ADMIN_ID:
+            btns.append([Button.inline("🔐 لوحة الأدمن", b"admin_panel")])
+
+        btns.append([Button.url('👨‍💻 المبرمج', f'https://t.me/{DEVELOPER_USERNAME}')])
+        return btns
+
+    @bot.on(events.NewMessage(pattern='/start'))
+    async def start(event):
+        uid = event.sender_id
+        msg = "🏭 **مصنع بوتات النشر التلقائي**\n\n"
+
+        if is_sub(uid):
+            client = db['clients'][str(uid)]
+            msg += f"✅ **اشتراكك مفعل**\n📅 ينتهي: {client['expiry']}\n\n"
+            msg += "تقدر تشغل بوت النشر الخاص بيك من الزراير تحت 👇"
+        else:
+            msg += "💡 **إزاي يشتغل؟**\n"
+            msg += "1. اعمل بوت من @BotFather وخد التوكن\n"
+            msg += "2. ادفع الاشتراك\n"
+            msg += "3. حط التوكن بتاعك\n"
+            msg += "4. مبروك بوتك اشتغل 24/7 🔥\n\n"
+            msg += f"💰 **السعر:** {PRICE}"
+
+        await event.reply(msg, buttons=main_menu(uid))
+
+    @bot.on(events.CallbackQuery)
+    async def handler(event):
+        data, uid = event.data, event.sender_id
+
+        if data == b"payment":
+            msg = f"💳 **الاشتراك الشهري**\n\n"
+            msg += "**الأسعار:**\n"
+            msg += "📱 فودافون كاش: **300 جنيه**\n"
+            msg += "💵 USDT: **6 دولار**\n"
+            msg += "💎 TON: **5 TON**\n"
+            msg += "⚡ LTC: **6 LTC**\n\n"
+            msg += "**دوس على الزر عشان تنسخ العنوان:**"
+            await event.edit(msg, buttons=[
+                [Button.inline("📱 نسخ فودافون كاش", b"copy_voda")],
+                [Button.inline("💵 نسخ USDT TRC20", b"copy_usdt")],
+                [Button.inline("💎 نسخ TON", b"copy_ton")],
+                [Button.inline("⚡ نسخ Litecoin", b"copy_ltc")],
+                [Button.inline("✅ أرسلت المبلغ", b"send_proof")],
+                [Button.inline("🔙 رجوع", b"back_main")]
+            ])
+            return
+
+        if data == b"copy_voda":
+            await event.answer("📱 رقم فودافون كاش:", alert=True)
+            await event.respond(f"`{PAYMENT_INFO['vodafone']}`\n\nدوس على الرقم عشان تنسخه 👆")
+            return
+        if data == b"copy_usdt":
+            await event.answer("💵 عنوان USDT TRC20:", alert=True)
+            await event.respond(f"`{PAYMENT_INFO['usdt_trc20']}`\n\nدوس على العنوان عشان تنسخه 👆")
+            return
+        if data == b"copy_ton":
+            await event.answer("💎 عنوان TON:", alert=True)
+            await event.respond(f"`{PAYMENT_INFO['ton']}`\n\nدوس على العنوان عشان تنسخه 👆")
+            return
+        if data == b"copy_ltc":
+            await event.answer("⚡ عنوان Litecoin:", alert=True)
+            await event.respond(f"`{PAYMENT_INFO['ltc']}`\n\nدوس على العنوان عشان تنسخه 👆")
+            return
+
+        if data == b"send_proof":
+            db['pending'][str(uid)] = {'time': datetime.now().strftime('%Y-%m-%d %H:%M')}
+            save_db(db)
+            await event.edit("📸 **ابعت سكرين شوت التحويل**\n\nبعد التأكيد هطلب منك توكن البوت")
+            return
+
+        if data == b"my_bots":
+            if not is_sub(uid):
+                return await event.answer("اشترك أولاً", alert=True)
+            client = db['clients'][str(uid)]
+            status = "🟢 شغال" if str(uid) in db.get('processes', {}) else "🔴 متوقف"
+            await event.edit(f"🤖 **بوتك**\n\nالحالة: {status}\nينتهي: {client['expiry']}", buttons=[[Button.inline("🔙 رجوع", b"back_main")]])
+            return
+
+        if data == b"admin_panel" and uid == ADMIN_ID:
+            total = len(db['clients'])
+            active = len([c for c in db['clients'].values() if c['active']])
+            pending = len(db['pending'])
+            msg = f"🔐 **لوحة التحكم**\n\n👥 العملاء: {total}\n🟢 النشطين: {active}\n⏳ معلق: {pending}"
+            await event.edit(msg, buttons=[
+                [Button.inline("⏳ المدفوعات المعلقة", b"show_pending")],
+                [Button.inline("🔙 رجوع", b"back_main")]
+            ])
+            return
+
+        if data == b"show_pending" and uid == ADMIN_ID:
+            pending = db.get('pending', {})
+            if not pending:
+                return await event.answer("لا يوجد", alert=True)
+            msg = "⏳ **المدفوعات المعلقة:**\n\n"
+            btns = []
+            for user_id in pending.keys():
+                msg += f"👤 `{user_id}`\n"
+                btns.append([Button.inline(f"✅ تفعيل {user_id}", f"approve_{user_id}")])
+            btns.append([Button.inline("🔙 رجوع", b"admin_panel")])
+            await event.edit(msg, buttons=btns)
+            return
+
+        if data.startswith(b'approve_') and uid == ADMIN_ID:
+            user_id = data.decode().split('_')[1]
+            db['pending'].pop(user_id, None)
+            await event.edit(f"✅ تم التأكيد\n\nاطلب من `{user_id}` يبعت توكن البوت")
+            await bot.send_message(int(user_id), "✅ **تم تأكيد الدفع!**\n\nدلوقتي ابعت توكن البوت بتاعك من @BotFather")
+            waiting_for[int(user_id)] = 'paid_token'
+            save_db(db)
+            return
+
+        if data == b"back_main":
+            await event.edit("🏭 **المصنع**", buttons=main_menu(uid))
+
+    @bot.on(events.NewMessage)
+    async def inputs(event):
+        uid = event.sender_id
+        if not event.text or event.text.startswith('/'):
+            return
+
+        step = waiting_for.get(uid)
+        if not step:
+            return
+
+        text = event.text.strip()
+
+        if step == 'paid_token':
+            if ':' not in text or len(text) < 40:
+                return await event.reply("❌ التوكن غلط!")
+
+            expiry = (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d')
+            await create_client_bot(uid, text, expiry, DEVELOPER_USERNAME)
+            waiting_for.pop(uid, None)
+            return
+
+    async def create_client_bot(user_id, bot_token, expiry, dev_username):
+        uid = str(user_id)
+
+        db['clients'][uid] = {
+            'token': bot_token,
+            'expiry': expiry,
+            'active': True,
+            'trial': False
+        }
+        save_db(db)
+
+        bot_file = os.path.join(BOTS_FOLDER, f'bot_{uid}.py')
+        bot_db_file = os.path.join(BOTS_FOLDER, f'db_{uid}.json')
+
+        code = POSTER_BOT_CODE.format(
+            BOT_TOKEN=bot_token,
+            ADMIN_ID=user_id,
+            DEVELOPER_USERNAME=dev_username,
+            DB_FILE=bot_db_file
+        )
+
+        with open(bot_file, 'w', encoding='utf-8') as f:
+            f.write(code)
+
+        try:
+            process = subprocess.Popen(['python', bot_file])
+            db['processes'][uid] = process.pid
+            save_db(db)
+
+            await bot.send_message(
+                user_id,
+                f"🎉 **مبروك! بوتك اشتغل**\n\n"
+                f"✅ التوكن: `{bot_token[:20]}...`\n"
+                f"📅 ينتهي: {expiry}\n"
+                f"💳 اشتراك مدفوع\n\n"
+                f"روح لبوتك وابعت /start عشان تبدأ 🚀",
+                buttons=main_menu(user_id)
+            )
+
+            await bot.send_message(ADMIN_ID, f"🆕 **عميل جديد**\n\n👤 {user_id}\n📅 {expiry}")
+
+        except Exception as e:
+            await bot.send_message(user_id, f"❌ خطأ في تشغيل البوت: {str(e)}")
+            await bot.send_message(ADMIN_ID, f"❌ خطأ في بوت {user_id}: {str(e)}")
+    
     await bot.start(bot_token=FACTORY_BOT_TOKEN)
     print("🏭 مصنع البوتات اشتغل!")
     await bot.run_until_disconnected()
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    asyncio.run(run_factory_bot())
