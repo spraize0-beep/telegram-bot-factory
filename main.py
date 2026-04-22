@@ -8,9 +8,9 @@ from telethon import TelegramClient, events, Button
 # --- البيانات الأساسية ---
 API_ID = 33595004
 API_HASH = 'cbd1066ed026997f2f4a7c4323b7bda7'
-FACTORY_BOT_TOKEN = '8537562802:AAFO9_vXWlUnr68Z2d0gbpmqTeU2cTDtbUk'
+FACTORY_BOT_TOKEN = os.environ.get('FACTORY_BOT_TOKEN')
 ADMIN_ID = 154919127
-DEVELOPER_USERNAME = "devazf"
+DEVELOPER_USERNAME = os.environ.get('DEVELOPER_USERNAME')
 DB_FILE = 'factory_data.json'
 BOTS_FOLDER = 'user_bots'
 
