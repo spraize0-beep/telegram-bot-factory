@@ -1,4 +1,4 @@
 telethon
-google-generativeai
-Pillow
+qrcode[pil]
 pytz
+aiohttp
