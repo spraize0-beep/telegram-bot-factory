@@ -3,12 +3,12 @@ import json
 import os
 import qrcode
 import io
-from datetime import datetime, timedelta
+from datetime import datetime
 from telethon import TelegramClient, events, Button
 
 API_ID = 33595004
 API_HASH = 'cbd1066ed026997f2f4a7c4323b7bda7'
-ADMIN_ID = 6771222119
+ADMIN_ID = 6771222119 # غير الرقم ده للـ ID بتاعك
 DB_FILE = 'esim_shop_db.json'
 
 PAYMENT_INFO = {
@@ -33,24 +33,21 @@ def load_db():
     return {
         'esims': {
             'usa': [
-                {'id': 'US001', 'name': 'أمريكا 5GB - 30 يوم', 'price': 10, 'cost': 6, 'code': 'LPA:1$sm-v4-064-001.gcpa.io$12345', 'used': False},
-                {'id': 'US002', 'name': 'أمريكا 10GB - 30 يوم', 'price': 15, 'cost': 9, 'code': 'LPA:1$sm-v4-064-001.gcpa.io$67890', 'used': False}
+                {'id': 'US001', 'name': 'أمريكا 5GB - 30 يوم', 'price': 10, 'code': 'LPA:1$sm-v4-064-001.gcpa.io$12345', 'used': False},
+                {'id': 'US002', 'name': 'أمريكا 10GB - 30 يوم', 'price': 15, 'code': 'LPA:1$sm-v4-064-001.gcpa.io$67890', 'used': False}
             ],
             'turkey': [
-                {'id': 'TR001', 'name': 'تركيا 3GB - 15 يوم', 'price': 6, 'cost': 4, 'code': 'LPA:1$sm-v4-072-001.gcpa.io$11111', 'used': False}
+                {'id': 'TR001', 'name': 'تركيا 3GB - 15 يوم', 'price': 6, 'code': 'LPA:1$sm-v4-072-001.gcpa.io$11111', 'used': False}
             ],
             'uae': [
-                {'id': 'AE001', 'name': 'الإمارات 2GB - 7 أيام', 'price': 5, 'cost': 3, 'code': 'LPA:1$sm-v4-784-001.gcpa.io$22222', 'used': False}
+                {'id': 'AE001', 'name': 'الإمارات 2GB - 7 أيام', 'price': 5, 'code': 'LPA:1$sm-v4-784-001.gcpa.io$22222', 'used': False}
             ]
         },
         'orders': {},
         'pending': {},
         'stats': {
             'total_sales': 0,
-            'total_profit': 0,
-            'total_orders': 0,
-            'pending_withdraw': 0,
-            'withdrawn': 0
+            'total_orders': 0
         }
     }
 
@@ -73,8 +70,7 @@ def calculate_crypto_amount(usd_price, crypto):
     crypto_price = CRYPTO_PRICES.get(crypto, 1)
     return round(usd_price / crypto_price, 6)
 
-async def deliver_esim(bot, db, uid, esim_id, tx_hash="Manual"):
-    """يسلم الشريحة بعد موافقة الأدمن"""
+async def deliver_esim(bot, db, uid, esim_id):
     esim = None
     for country, esims in db['esims'].items():
         for e in esims:
@@ -88,44 +84,31 @@ async def deliver_esim(bot, db, uid, esim_id, tx_hash="Manual"):
         await bot.send_message(uid, "❌ عذراً الباقة خلصت، كلمني @AzefDev")
         return False
 
-    # علمها مستخدمة
     esim['used'] = True
     esim['sold_to'] = uid
     esim['sold_date'] = datetime.now().strftime('%Y-%m-%d %H:%M')
-    esim['tx_hash'] = tx_hash
 
-    # سجل الطلب
     order_id = f"ORD{len(db['orders']) + 1:05d}"
-    profit = esim['price'] - esim.get('cost', 0)
 
     db['orders'][order_id] = {
         'user_id': uid,
         'esim_id': esim['id'],
         'name': esim['name'],
         'price': esim['price'],
-        'cost': esim.get('cost', 0),
-        'profit': profit,
         'code': esim['code'],
-        'date': esim['sold_date'],
-        'tx_hash': tx_hash
+        'date': esim['sold_date']
     }
 
-    # حدث الإحصائيات
     db['stats']['total_orders'] += 1
     db['stats']['total_sales'] += esim['price']
-    db['stats']['total_profit'] += profit
-    db['stats']['pending_withdraw'] += profit
-
     save_db(db)
 
-    # ابعت الـ QR Code
     qr_img = generate_qr(esim['code'])
     caption = f"✅ **تم التسليم بنجاح!**\n\n"
     caption += f"📦 الباقة: {esim['name']}\n"
     caption += f"🔢 رقم الطلب: `{order_id}`\n\n"
     caption += f"**كود التفعيل:**\n`{esim['code']}`\n\n"
-    caption += "📱 امسح الـ QR أو انسخ الكود\n"
-    caption += "⚡ التفعيل في دقيقتين"
+    caption += "📱 امسح الـ QR أو انسخ الكود"
 
     await bot.send_message(uid, caption, file=qr_img)
     return True
@@ -137,6 +120,7 @@ async def run_esim_bot():
         return
 
     db = load_db()
+    waiting_for = {}
     bot = TelegramClient('ESIM_Bot', API_ID, API_HASH)
 
     def main_menu():
@@ -180,22 +164,18 @@ async def run_esim_bot():
             pending_count = len([p for p in db['pending'].values() if p.get('waiting_approval')])
             msg = f"🔐 **لوحة تحكم الأدمن**\n\n"
             msg += f"⏳ طلبات معلقة: {pending_count}\n"
-            msg += f"🛒 الطلبات: {stats['total_orders']}\n"
-            msg += f"💰 المبيعات: {stats['total_sales']}$\n"
-            msg += f"💵 الأرباح: {stats['total_profit']}$\n"
-            msg += f"⏳ معلق للسحب: {stats['pending_withdraw']}$"
+            msg += f"🛒 إجمالي الطلبات: {stats['total_orders']}\n"
+            msg += f"💰 إجمالي المبيعات: {stats['total_sales']}$"
             await event.reply(msg, buttons=[
                 [Button.inline("⏳ الطلبات المعلقة", b"pending_orders")],
                 [Button.inline("📦 المخزون", b"stock")],
-                [Button.inline("➕ إضافة eSIM", b"add_esim")],
-                [Button.inline("📊 الإحصائيات", b"stats")]
+                [Button.inline("➕ إضافة eSIM", b"add_esim")]
             ])
         else:
             await event.reply(
                 "🌍 **متجر شرائح eSIM الرقمية**\n\n"
                 "✅ تسليم بعد التأكيد\n"
-                "⚡ تفعيل في دقيقتين\n"
-                "🔒 دفع كريبتو آمن\n\n"
+                "⚡ تفعيل في دقيقتين\n\n"
                 "اختار اللي محتاجه 👇",
                 buttons=main_menu()
             )
@@ -271,15 +251,13 @@ async def run_esim_bot():
             msg += "⚠️ **خطوات:**\n"
             msg += "1️⃣ حول المبلغ بالظبط\n"
             msg += "2️⃣ ابعت سكرين التحويل هنا\n"
-            msg += "3️⃣ هنأكد الدفع ونسلمك فوراً\n\n"
-            msg += "⏳ في انتظار السكرين..."
+            msg += "3️⃣ هنأكد الدفع ونسلمك فوراً"
 
             await event.edit(msg, buttons=[[Button.inline("❌ إلغاء", b"cancel_order")]])
 
-            # إشعار للأدمن
             user = await event.get_sender()
             username = f"@{user.username}" if user.username else "بدون"
-            await bot.send_message(ADMIN_ID, f"🛒 **طلب جديد معلق**\n\n👤 {user.first_name}\n🔗 {username}\n🆔 `{uid}`\n\n📦 {esim['name']}\n💰 {amount} {crypto.upper()}\n\n⏳ في انتظار السكرين")
+            await bot.send_message(ADMIN_ID, f"🛒 **طلب جديد معلق**\n\n👤 {user.first_name}\n🔗 {username}\n🆔 `{uid}`\n\n📦 {esim['name']}\n💰 {amount} {crypto.upper()}")
 
         elif data == b"cancel_order":
             if uid_str in db['pending']:
@@ -305,7 +283,6 @@ async def run_esim_bot():
             msg += "⚠️ لازم يكون موبايلك بيدعم eSIM"
             await event.edit(msg, buttons=[[Button.inline("🔙 رجوع", b"back_main")]])
 
-        # أدمن
         elif data == b"pending_orders" and uid == ADMIN_ID:
             pending = {k: v for k, v in db['pending'].items() if v.get('waiting_approval')}
             if not pending:
@@ -332,7 +309,7 @@ async def run_esim_bot():
                 return await event.answer("الطلب مش موجود", alert=True)
 
             order = db['pending'][user_id]
-            success = await deliver_esim(bot, db, int(user_id), order['esim_id'], "Manual")
+            success = await deliver_esim(bot, db, int(user_id), order['esim_id'])
 
             if success:
                 del db['pending'][user_id]
@@ -358,23 +335,90 @@ async def run_esim_bot():
                     msg += f" • {e['name']} - {e['price']}$\n"
             await event.edit(msg, buttons=[[Button.inline("🔙 رجوع", b"back_main")]])
 
-        elif data == b"stats" and uid == ADMIN_ID:
-            stats = db['stats']
-            msg = f"📊 **الإحصائيات**\n\n"
-            msg += f"🛒 الطلبات: {stats['total_orders']}\n"
-            msg += f"💰 المبيعات: {stats['total_sales']}$\n"
-            msg += f"💵 الأرباح: {stats['total_profit']}$\n"
-            msg += f"💎 مسحوب: {stats['withdrawn']}$\n"
-            msg += f"⏳ معلق: {stats['pending_withdraw']}$"
-            await event.edit(msg, buttons=[[Button.inline("🔙 رجوع", b"back_main")]])
-
         elif data == b"add_esim" and uid == ADMIN_ID:
-            await event.answer("ابعت: الدولة|الاسم|السعر|التكلفة|الكود", alert=True)
+            waiting_for[uid] = {'step': 'country', 'data': {}}
+            await event.edit(
+                "📝 **إضافة eSIM جديدة**\n\n"
+                "الخطوة 1/4: ابعت اسم الدولة\n"
+                "مثال: `usa` أو `turkey` أو `uae`\n\n"
+                "اكتب /cancel للإلغاء"
+            )
 
     @bot.on(events.NewMessage)
     async def handle_messages(event):
         uid = event.sender_id
         uid_str = str(uid)
+        text = event.text.strip()
+
+        if text == '/cancel' and uid in waiting_for:
+            del waiting_for[uid]
+            return await event.reply("❌ تم الإلغاء")
+
+        # Wizard إضافة eSIM
+        if uid in waiting_for and isinstance(waiting_for[uid], dict):
+            step_data = waiting_for[uid]
+            step = step_data['step']
+            data = step_data['data']
+
+            if step == 'country':
+                data['country'] = text.lower()
+                waiting_for[uid] = {'step': 'name', 'data': data}
+                await event.reply(
+                    f"✅ الدولة: {text}\n\n"
+                    "الخطوة 2/4: ابعت اسم الباقة\n"
+                    "مثال: `أمريكا 5GB - 30 يوم`"
+                )
+
+            elif step == 'name':
+                data['name'] = text
+                waiting_for[uid] = {'step': 'price', 'data': data}
+                await event.reply(
+                    f"✅ الاسم: {text}\n\n"
+                    "الخطوة 3/4: ابعت السعر بالدولار\n"
+                    "مثال: `10`"
+                )
+
+            elif step == 'price':
+                try:
+                    data['price'] = int(text)
+                    waiting_for[uid] = {'step': 'code', 'data': data}
+                    await event.reply(
+                        f"✅ السعر: {text}$\n\n"
+                        "الخطوة 4/4: ابعت كود التفعيل eSIM\n"
+                        "مثال: `LPA:1$sm-v4-064-001.gcpa.io$12345`"
+                    )
+                except:
+                    await event.reply("❌ لازم رقم صحيح\nمثال: 10")
+
+            elif step == 'code':
+                data['code'] = text
+                country = data['country']
+
+                if country not in db['esims']:
+                    db['esims'][country] = []
+
+                new_id = f"{country.upper()}{len(db['esims'][country]) + 1:03d}"
+
+                db['esims'][country].append({
+                    'id': new_id,
+                    'name': data['name'],
+                    'price': data['price'],
+                    'code': data['code'],
+                    'used': False
+                })
+                save_db(db)
+
+                del waiting_for[uid]
+
+                await event.reply(
+                    f"✅ **تمت الإضافة بنجاح**\n\n"
+                    f"🌍 الدولة: {country}\n"
+                    f"📦 الباقة: {data['name']}\n"
+                    f"💰 السعر: {data['price']}$\n"
+                    f"🆔 ID: {new_id}\n\n"
+                    f"🔑 الكود:\n`{data['code']}`"
+                )
+            return
 
         # استلام سكرين الدفع
         if event.photo and uid_str in db['pending'] and db['pending'][uid_str].get('waiting_approval'):
@@ -385,7 +429,6 @@ async def run_esim_bot():
                     esim_name = e['name']
                     break
 
-            # ابعت للأدمن للموافقة
             user = await event.get_sender()
             username = f"@{user.username}" if user.username else "بدون"
 
@@ -406,32 +449,8 @@ async def run_esim_bot():
                 ]
             )
 
-            await event.reply("✅ **وصل السكرين**\n\n⏳ جاري المراجعة... هنسلمك الشريحة خلال دقايق بعد التأكيد")
+            await event.reply("✅ **وصل السكرين**\n\n⏳ جاري المراجعة... هنسلمك الشريحة بعد التأكيد")
             return
-
-        # إضافة eSIM من الأدمن
-        if uid == ADMIN_ID and '|' in event.text:
-            try:
-                parts = event.text.strip().split('|')
-                country, name, price, cost, code = parts[0].strip(), parts[1].strip(), int(parts[2].strip()), int(parts[3].strip()), parts[4].strip()
-
-                if country not in db['esims']:
-                    db['esims'][country] = []
-
-                new_id = f"{country.upper()}{len(db['esims'][country]) + 1:03d}"
-                db['esims'][country].append({
-                    'id': new_id,
-                    'name': name,
-                    'price': price,
-                    'cost': cost,
-                    'code': code,
-                    'used': False
-                })
-                save_db(db)
-
-                await event.reply(f"✅ **تمت الإضافة**\n\n🌍 {country}\n📦 {name}\n💰 السعر: {price}$\n💵 التكلفة: {cost}$\n📊 الربح: {price-cost}$\n🆔 {new_id}")
-            except:
-                await event.reply("❌ الصيغة غلط\n\nاستخدم:\n`الدولة|الاسم|السعر|التكلفة|الكود`")
 
     await bot.start(bot_token=BOT_TOKEN)
     print("🌍 متجر eSIM اشتغل!")
