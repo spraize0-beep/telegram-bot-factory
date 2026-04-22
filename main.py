@@ -5,7 +5,7 @@ import subprocess
 from datetime import datetime, timedelta
 from telethon import TelegramClient, events, Button
 
-# --- البيانات الأساسية ---
+# --- البيانات الأساسية من المتغيرات ---
 API_ID = 33595004
 API_HASH = 'cbd1066ed026997f2f4a7c4323b7bda7'
 FACTORY_BOT_TOKEN = os.environ.get('FACTORY_BOT_TOKEN')
@@ -21,7 +21,7 @@ PAYMENT_INFO = {
     'ton': 'UQAarGycIaNnngwNAQ1Tek32I3MGroiaeF6p6MxEadimfszt',
     'ltc': 'LZgafAodZxDmjM9Ri51ygZ6dU8UbxE2cPH'
 }
-PRICE = " 6$ - 300 EG / شهر"
+PRICE = "6$ - 300EG / شـهـر"
 
 # --- كود بوت النشر اللي هيتنسخ لكل عميل ---
 POSTER_BOT_CODE = '''
