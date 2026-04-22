@@ -8,8 +8,21 @@ from telethon import TelegramClient, events, Button
 # --- البيانات الأساسية من المتغيرات ---
 API_ID = 33595004
 API_HASH = 'cbd1066ed026997f2f4a7c4323b7bda7'
-FACTORY_BOT_TOKEN = os.environ.get('FACTORY_BOT_TOKEN')
-DEVELOPER_USERNAME = os.environ.get('DEVELOPER_USERNAME')
+FACTORY_BOT_TOKEN = None
+DEVELOPER_USERNAME = None
+
+async def main():
+    global FACTORY_BOT_TOKEN, DEVELOPER_USERNAME
+    FACTORY_BOT_TOKEN = os.environ.get('FACTORY_BOT_TOKEN')
+    DEVELOPER_USERNAME = os.environ.get('DEVELOPER_USERNAME')
+    
+    if not FACTORY_BOT_TOKEN:
+        print("❌ FACTORY_BOT_TOKEN مش متضاف في Variables")
+        return
+        
+    await bot.start(bot_token=FACTORY_BOT_TOKEN)
+    print("🏭 مصنع البوتات اشتغل!")
+    await bot.run_until_disconnected()
 ADMIN_ID = 154919127
 DB_FILE = 'factory_data.json'
 BOTS_FOLDER = 'user_bots'
