@@ -144,7 +144,7 @@ async def run_esim_bot():
             [Button.inline("🛒 شراء شريحة eSIM", b"buy_esim")],
             [Button.inline("📦 طلباتي", b"my_orders")],
             [Button.inline("❓ طريقة التفعيل", b"how_to")],
-            [Button.url('👨‍💻 الدعم الفني', 'https://t.me/AzefDev')]
+            [Button.url('👨‍💻 الدعم الفني', 'https://t.me/eSIM_HolaflY')]
         ]
 
     def countries_menu():
