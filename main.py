@@ -381,7 +381,7 @@ async def run_factory_bot():
         if is_sub(uid):
             btns.append([Button.inline("🤖 بوتاتي", b"my_bots")])
         else:
-            btns.append([Button.inline("💳 اشترك الآن - 300 جنيه", b"payment")])
+            btns.append([Button.inline("💳 اشترك الآن - 6$ - 300EG / شهر ", b"payment")])
 
         if uid == ADMIN_ID:
             btns.append([Button.inline("🔐 لوحة الأدمن", b"admin_panel")])
