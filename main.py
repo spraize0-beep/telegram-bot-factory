@@ -12,7 +12,7 @@ BOT_TOKEN = "8999384350:AAGk97WkauQmoG_QtKhFIizHc49eanoTdWg"
 OWNER_ID = 8085768728 # ID بتاعك
 FORCE_CHANNEL = "marketing_azef" # اسم القناة من غير @
 BOT_PASSWORD = "Azefx2006" # كلمة سر دخول البوت
-SESSION_PASSWORD = "@Azefx2006#"
+SESSION_PASSWORD = "Azefr2006#"
 
 bot = TelegramClient('bot', API_ID, API_HASH)
 
@@ -415,4 +415,8 @@ async def main():
     await bot.run_until_disconnected()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        print(f"❌ الخطأ الحقي: {e}")
+        raise
