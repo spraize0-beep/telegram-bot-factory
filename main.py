@@ -6,13 +6,13 @@ from telethon import TelegramClient, events, Button
 from telethon.errors import FloodWaitError, SessionPasswordNeededError, PhoneCodeInvalidError
 from telethon.tl.functions.messages import GetDialogFiltersRequest
 
-API_ID = int(os.getenv("API_ID", "33595004"))
-API_HASH = os.getenv("API_HASH", "cbd1066ed026997f2f4a7c4323b7bda7")
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8999384350:AAGk97WkauQmoG_QtKhFIizHc49eanoTdWg")
-OWNER_ID = int(os.getenv("OWNER_ID", "8085768728"))
+API_ID = int(os.getenv("API_ID", "12345"))
+API_HASH = os.getenv("API_HASH", "your_api_hash")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "your_bot_token")
+OWNER_ID = int(os.getenv("OWNER_ID", "123456789"))
 FORCE_CHANNEL = os.getenv("FORCE_CHANNEL", "marketing_azef")
-BOT_PASSWORD = os.getenv("BOT_PASSWORD", "Azefx2006")
-SESSION_PASSWORD = os.getenv("SESSION_PASSWORD", "@#Azefx2006@#")
+BOT_PASSWORD = os.getenv("BOT_PASSWORD", "change_me_123")
+SESSION_PASSWORD = os.getenv("SESSION_PASSWORD", "change_session_pass_456")
 
 bot = TelegramClient('bot', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
@@ -81,12 +81,12 @@ async def start(event):
     if event.sender_id!= OWNER_ID:
         return
     if event.sender_id not in user_authed:
-        await event.reply("🔐 ارسل /login وسجل دخولك الأول")
+        await event.reply("🔐 ابعت /login وسجل دخولك الأول")
         return
     if not await check_force_sub(event.sender_id):
         await send_force_sub(event)
         return
-    await event.reply("🚀 بوت النشر Pro v40 - مؤمّن", buttons=main_menu)
+    await event.reply("🚀 بوت النشر Pro v4.1 - مؤمّن", buttons=main_menu)
 
 @bot.on(events.NewMessage(pattern='/login'))
 async def login(event):
