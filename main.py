@@ -8,7 +8,7 @@ from telethon.tl.functions.messages import GetDialogFiltersRequest
 
 API_ID = 33595004 # رقم، من غير كوتس
 API_HASH = "cbd1066ed026997f2f4a7c4323b7bda7"
-BOT_TOKEN = "8999384350:AAGk97WkauQmoG_QtKhFIizHc49eanoTdWg"
+BOT_TOKEN = "8999384350:AAGbf5UaMpTdMVbKNOBqlr2mK2xMWRpi3eU"
 OWNER_ID = 8085768728 # ID بتاعك
 FORCE_CHANNEL = "marketing_azef" # اسم القناة من غير @
 BOT_PASSWORD = "Azefx2006" # كلمة سر دخول البوت
