@@ -14,7 +14,7 @@ FORCE_CHANNEL = os.getenv("FORCE_CHANNEL", "marketing_azef")
 BOT_PASSWORD = os.getenv("BOT_PASSWORD", "change_me_123")
 SESSION_PASSWORD = os.getenv("SESSION_PASSWORD", "change_session_pass_456")
 
-bot = TelegramClient('bot', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+bot = TelegramClient('bot', API_ID, API_HASH)
 
 DB = sqlite3.connect("bot.db", check_same_thread=False)
 c = DB.cursor()
