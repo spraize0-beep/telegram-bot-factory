@@ -6,13 +6,13 @@ from telethon import TelegramClient, events, Button
 from telethon.errors import FloodWaitError, SessionPasswordNeededError, PhoneCodeInvalidError
 from telethon.tl.functions.messages import GetDialogFiltersRequest
 
-API_ID = int(os.getenv("API_ID", "12345"))
-API_HASH = os.getenv("API_HASH", "your_api_hash")
-BOT_TOKEN = os.getenv("BOT_TOKEN", "your_bot_token")
-OWNER_ID = int(os.getenv("OWNER_ID", "123456789"))
-FORCE_CHANNEL = os.getenv("FORCE_CHANNEL", "marketing_azef")
-BOT_PASSWORD = os.getenv("BOT_PASSWORD", "change_me_123")
-SESSION_PASSWORD = os.getenv("SESSION_PASSWORD", "change_session_pass_456")
+API_ID = 33595004 # رقم، من غير كوتس
+API_HASH = "cbd1066ed026997f2f4a7c4323b7bda7"
+BOT_TOKEN = "8999384350:AAGk97WkauQmoG_QtKhFIizHc49eanoTdWg"
+OWNER_ID = 8085768728 # ID بتاعك
+FORCE_CHANNEL = "marketing_azef" # اسم القناة من غير @
+BOT_PASSWORD = "Azefx2006" # كلمة سر دخول البوت
+SESSION_PASSWORD = "@Azefx2006#"
 
 bot = TelegramClient('bot', API_ID, API_HASH)
 
