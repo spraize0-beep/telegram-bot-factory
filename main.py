@@ -6,8 +6,8 @@ from telethon import TelegramClient, events, Button
 from telethon.errors import FloodWaitError, SessionPasswordNeededError, PhoneCodeInvalidError
 from telethon.tl.functions.messages import GetDialogFiltersRequest
 
-API_ID = 33595004 # رقم، من غير كوتس
-API_HASH = "cbd1066ed026997f2f4a7c4323b7bda7"
+API_ID = 28509955 # رقم، من غير كوتس
+API_HASH = "4388e8e3adff0695399f439dcae25436"
 BOT_TOKEN = "8999384350:AAGbf5UaMpTdMVbKNOBqlr2mK2xMWRpi3eU"
 OWNER_ID = 8085768728 # ID بتاعك
 FORCE_CHANNEL = "marketing_azef" # اسم القناة من غير @
