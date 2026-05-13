@@ -522,14 +522,14 @@ async def callback(event):
         await safe_edit(event, f"📱 **ادارة الحسابات**\n\nالعدد: {len(user['accounts'])}/{MAX_ACCOUNTS}\n\nاختار حساب للتفاصيل او اضف جديد:", buttons=accounts_menu(uid))
         return
 
-    elif data == b'pub_settings':
+    elif data == 'pub_settings':
         if not acc:
             await event.answer("❌ حدد حساب من ادارة الحسابات الاول", alert=True)
             await safe_edit(event, f"📱 **ادارة الحسابات**\n\nالعدد: {len(user['accounts'])}/{MAX_ACCOUNTS}\n\nاختار حساب للتفاصيل او اضف جديد:", buttons=accounts_menu(uid))
             return
-            await safe_edit(event, "⚙️ **اعدادات النشر الاحترافية**", buttons=pub_settings_menu(uid))
-            await event.answer()  # ضيف دي كمان عشان يشيل علامة التحميل
-            return
+        await safe_edit(event, "⚙️ **اعدادات النشر الاحترافية**", buttons=pub_settings_menu(uid))
+        return
+
 
     elif data == 'fetch_groups':
         if not acc:
