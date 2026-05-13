@@ -423,7 +423,7 @@ async def callback(event):
 
     elif data == 'add_account':
         if len(user['accounts']) >= MAX_ACCOUNTS:
-            await event.answer(f"❌ مسموح بحساب واحد فقط", alert=True)
+            await event.answer(f"مسموح 50 حساب فقط", alert=True)
             return
         waiting_for[uid] = 'phone_login'
         await safe_edit(event, "📱 **ابعت رقم الحساب:**\n\nمثال: +201234567890\n\n**البوت هيسجل دخول مباشر - الكود هيوصل على تيليجرام الرقم**", buttons=[[Button.inline("🔙 رجوع", b"back_main")]])
@@ -522,13 +522,14 @@ async def callback(event):
         await safe_edit(event, f"📱 **ادارة الحسابات**\n\nالعدد: {len(user['accounts'])}/{MAX_ACCOUNTS}\n\nاختار حساب للتفاصيل او اضف جديد:", buttons=accounts_menu(uid))
         return
 
-    elif data == 'pub_settings':
-        if not acc:
-            await event.answer("❌ حدد حساب من ادارة الحسابات الاول", alert=True)
-            await safe_edit(event, f"📱 **ادارة الحسابات**\n\nالعدد: {len(user['accounts'])}/{MAX_ACCOUNTS}\n\nاختار حساب للتفاصيل او اضف جديد:", buttons=accounts_menu(uid))
-            return
-        await safe_edit(event, "⚙️ **اعدادات النشر الاحترافية**", buttons=pub_settings_menu(uid))
+    elif data == b'pub_settings':
+    if not acc:
+        await event.answer("❌ حدد حساب من ادارة الحسابات الاول", alert=True)
+        await safe_edit(event, f"📱 **ادارة الحسابات**\n\nالعدد: {len(user['accounts'])}/{MAX_ACCOUNTS}\n\nاختار حساب للتفاصيل او اضف جديد:", buttons=accounts_menu(uid))
         return
+    await safe_edit(event, "⚙️ **اعدادات النشر الاحترافية**", buttons=pub_settings_menu(uid))
+    await event.answer()  # ضيف دي كمان عشان يشيل علامة التحميل
+    return
 
     elif data == 'fetch_groups':
         if not acc:
@@ -749,13 +750,13 @@ async def callback(event):
         text += "7️⃣ **استخدم رسالتين** وبدل بينهم\n"
         text += "8️⃣ **متدخلش جروبات كتير مرة واحدة**\n"
         text += "9️⃣ **لو جالك فلود استنى 24 ساعة**\n"
-        text += "🔟 **الحسابات الي تقدر تصيفها 50 مسموح**\n\n"
+        text += "🔟 **الحسابات الي تقدر تضيفها 50 مسموح**\n\n"
         await safe_edit(event, text, buttons=[[Button.inline("🔙 رجوع", b"back_main")]])
         return
 
     elif data == 'buy_bot':
         text = f"🛒 **شراء بوت مماثل**\n\n"
-        text += f"💰 **السعر:** $10 **فقط\n"
+        text += f"💰 **السعر : $10 فقط**\n"
         text += "✅ **المميزات:**\n"
         text += f"🔑 تقدر تضيف 50 حساب برقم الهاتف\n"
         text += "📝 نشر تلقائي احترافي\n"
@@ -768,7 +769,7 @@ async def callback(event):
         text += "📊 تحليل و احصائيات\n"
         text += "♾️ اشتراك مدى الحياة\n\n"
         text += f"**للشراء تواصل مع المبرمج**"
-        await safe_edit(event, text, buttons=[[Button.url("👨‍💻 المطور", DEVELOPER_LINK)], [Button.inline("🔙 رجوع", b"back_main")]])
+        await safe_edit(event, text, buttons=[[Button.url("👨‍💻 المبرمج", DEVELOPER_LINK)], [Button.inline("🔙 رجوع", b"back_main")]])
         return
 
     elif data == 'admin':
