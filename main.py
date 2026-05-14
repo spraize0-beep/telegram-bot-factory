@@ -52,8 +52,11 @@ RED = '\033[91m'
 GREEN = '\033[92m'
 CYAN = '\033[96m'
 MAGENTA = '\033[95m'
-ID = input(f"{YELLOW}{BOLD}ID : 8085768728 ")
-token = input(f"{RED}{BOLD}Token : 8859975825:AAErrL1suzZDkF2yChRDq__QFkhFMzzPcIo ")
+ID = "8085768728"
+token = "8859975825:AAErrL1suzZDkF2yChRDq__QFkhFMzzPcIo" 
+# لو عايز تطبعهم بلون استخدم print قبل input
+print(f"{YELLOW}{BOLD}ID : {ID}")
+print(f"{RED}{BOLD}Token : {token}")
 #def namefile():
 #  while True:
 #    try:
