@@ -8,12 +8,12 @@ from datetime import datetime, timedelta
 TOKEN = os.getenv("TOKEN", "8804613735:AAHDj0O244e52Pd_9ibygSZD_pdLAL0AvPY")
 CHANNEL_ID = os.getenv("CHANNEL_ID", "@marketing_azef")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "8085768728"))
+DEV_USERNAME = "devazf" # غيره لليوزر بتاعك
 
 bot = telebot.TeleBot(TOKEN)
 conn = sqlite3.connect("bot.db", check_same_thread=False)
 c = conn.cursor()
 
-# الجداول
 c.execute('''CREATE TABLE IF NOT EXISTS users
             (user_id INTEGER PRIMARY KEY, username TEXT, exp_date TEXT, status TEXT, lang TEXT)''')
 c.execute('''CREATE TABLE IF NOT EXISTS admins
@@ -23,7 +23,6 @@ c.execute('''CREATE TABLE IF NOT EXISTS sub_codes
 c.execute('''INSERT OR IGNORE INTO admins VALUES (?)''', (ADMIN_ID,))
 conn.commit()
 
-# النصوص
 TEXTS = {
     "ar": {
         "choose_lang": "اختر اللغة / Choose Language",
@@ -31,12 +30,11 @@ TEXTS = {
         "trial_msg": "تم تفعيل التجربة المجانية لمدة ساعة ✅",
         "menu": "مرحباً {name}\nاختر الخدمة:",
         "choose_problem": "اختار نوع المشكلة:",
-        "template_msg": "**{}**\n\n**الرسالة الجاهزة:**\n```{}```\n\n**قدمها هنا:**\n{}\n\n_انسخ الرسالة واملأ الفورم يدوياً_",
-        "report_msg": "أرسل رابط الحساب المخالف أو اليوزرنيم:",
+        "choose_report": "اختار نوع البلاغ:",
         "choose_count": "اختر عدد البلاغات:",
         "choose_delay": "اختر الفاصل الزمني بين كل بلاغ:",
+        "template_msg": "**{}**\n\n**الرسالة الجاهزة:**\n```{}```\n\n**قدمها هنا:**\n{}\n\n_انسخ الرسالة واملأ الفورم يدوياً_",
         "ready_msg": "**جاهز {} بلاغ**\n\n**الحساب المستهدف:** `{}`\n**الفاصل:** {} ثانية\n**لينك الفورم:** {}\n\n**الرسالة الجاهزة:**\n```{}```\n\n_افتح اللينك واملأ الفورم، استنى {} ثانية وكرر العملية {} مرة_",
-        "developer": "المبرمج: @DevAzf",
         "no_sub": "غير مشترك. أرسل كود الاشتراك أو استخدم التجربة.",
         "code_enter": "أرسل كود الاشتراك:",
         "code_wrong": "الكود غلط.",
@@ -44,9 +42,6 @@ TEXTS = {
         "activated": "تم التفعيل ✅\nالاشتراك ينتهي: {}",
         "admin_panel": "لوحة التحكم:",
         "stats": "المشتركين النشطين: {}\nالأكواد الفارغة: {}\nالمستخدمين بالتجربة: {}",
-        "admin_added": "تم إضافة الأدمن ✅",
-        "admin_removed": "تم حذف الأدمن ✅",
-        "error_id": "ايدي غلط."
     },
     "en": {
         "choose_lang": "Choose Language / اختر اللغة",
@@ -54,12 +49,11 @@ TEXTS = {
         "trial_msg": "Free trial activated for 1 hour ✅",
         "menu": "Welcome {name}\nChoose service:",
         "choose_problem": "Choose problem type:",
-        "template_msg": "**{}**\n\n**Message Template:**\n```{}```\n\n**Submit here:**\n{}\n\n_Copy and submit manually_",
-        "report_msg": "Send the violating account link or username:",
+        "choose_report": "Choose report type:",
         "choose_count": "Choose report count:",
         "choose_delay": "Choose delay between reports:",
+        "template_msg": "**{}**\n\n**Message Template:**\n```{}```\n\n**Submit here:**\n{}\n\n_Copy and submit manually_",
         "ready_msg": "**Ready {} reports**\n\n**Target:** `{}`\n**Delay:** {} seconds\n**Form link:** {}\n\n**Message Template:**\n```{}```\n\n_Open the link, submit, wait {} seconds and repeat {} times_",
-        "developer": "Developer: @dev_username",
         "no_sub": "Not subscribed. Send subscription code or use trial.",
         "code_enter": "Send subscription code:",
         "code_wrong": "Wrong code.",
@@ -67,13 +61,9 @@ TEXTS = {
         "activated": "Activated ✅\nExpires: {}",
         "admin_panel": "Admin Panel:",
         "stats": "Active users: {}\nEmpty codes: {}\nTrial users: {}",
-        "admin_added": "Admin added ✅",
-        "admin_removed": "Admin removed ✅",
-        "error_id": "Wrong ID."
     }
 }
 
-# أنواع الباند
 BAN_TYPES = {
     "disabled": {"ar": "حساب معطل", "en": "Account Disabled", "link": "https://help.instagram.com/contact/260345859025179"},
     "action_block": {"ar": "حظر الإجراءات", "en": "Action Block", "link": "https://help.instagram.com/contact/1652567838289083"},
@@ -87,7 +77,19 @@ BAN_TYPES = {
     "copyright": {"ar": "حقوق النشر", "en": "Copyright", "link": "https://help.instagram.com/contact/505429837857191"}
 }
 
-# قوالب الرسائل
+REPORT_TYPES = {
+    "fake": {"ar": "حساب مزيف", "en": "Fake Account", "reason": "impersonation"},
+    "spam": {"ar": "سبام", "en": "Spam", "reason": "spam"},
+    "harassment": {"ar": "تحرش/تنمر", "en": "Harassment", "reason": "harassment"},
+    "hate": {"ar": "خطاب كراهية", "en": "Hate Speech", "reason": "hate"},
+    "violence": {"ar": "عنف", "en": "Violence", "reason": "violence"},
+    "self_harm": {"ar": "إيذاء النفس", "en": "Self Harm", "reason": "self_harm"},
+    "illegal": {"ar": "نشاط غير قانوني", "en": "Illegal Activity", "reason": "illegal"},
+    "underage": {"ar": "قاصر", "en": "Underage", "reason": "underage"},
+    "copyright": {"ar": "انتهاك حقوق", "en": "Copyright", "reason": "copyright"},
+    "scam": {"ar": "احتيال", "en": "Scam", "reason": "scam"}
+}
+
 MESSAGES = {
     "disabled": {"ar": "مرحباً دعم انستجرام، تم تعطيل حسابي @{} بالخطأ. لم أخالف القوانين. ارجو المراجعة.",
                  "en": "Hello Instagram Support, my account @{} was disabled by mistake. I did not violate Community Guidelines. Please review."},
@@ -97,8 +99,7 @@ MESSAGES = {
                   "en": "Hello, my account @{} posts don't appear in hashtags. Please check."},
     "challenge": {"ar": "مرحباً دعم، حسابي @{} يحتاج تحقق هوية ولا يعمل. ارجو المساعدة.",
                   "en": "Hello Support, my account @{} requires identity verification but it's not working. Please help."},
-    "login_issue": {"ar": "مرحباً، لا أستطيع تسجيل الدخول لحسابي @{} بسبب مشكلة أمنية. ارجو المساعدة.",
-                    "en": "Hello, I cannot log in to my account @{} due to a security issue. Please help me regain access."},
+    "login_issue": {"ar": "Hello, I cannot log in to my account @{} due to a security issue. Please help me regain access."},
     "logout_loop": {"ar": "مرحباً، حسابي @{} يخرج تلقائياً ولا أستطيع الدخول. ارجو الحل.",
                     "en": "Hello, my account @{} keeps logging out. I cannot access it. Please fix."},
     "age_restrict": {"ar": "مرحباً، حسابي @{} محظور بسبب السن بالخطأ. عمري أكبر من 18 سنة.",
@@ -109,13 +110,30 @@ MESSAGES = {
                          "en": "Hello, my account @{} comments are restricted by mistake. Please review."},
     "copyright": {"ar": "مرحباً، تم إزالة منشور من حسابي @{} بسبب حقوق النشر بالخطأ. ارجو المراجعة.",
                   "en": "Hello, a post was removed from my account @{} due to copyright by mistake. Please review."},
-    "report_violation": {"ar": "مرحباً، هذا الحساب {} ينتهك قوانينكم. ارجو المراجعة واتخاذ الإجراء المناسب.",
-                         "en": "Hello, this account {} violates your guidelines. Please review and take action."}
+    "report_fake": {"ar": "مرحباً، هذا الحساب {} مزيف وينتحل شخصية. ارجو المراجعة والحذف.",
+                    "en": "Hello, this account {} is fake and impersonating someone. Please review and remove."},
+    "report_spam": {"ar": "مرحباً، هذا الحساب {} ينشر سبام وإزعاج. ارجو الحظر.",
+                    "en": "Hello, this account {} is spamming. Please block it."},
+    "report_harassment": {"ar": "مرحباً، هذا الحساب {} يقوم بالتحرش والتنمر. ارجو اتخاذ إجراء.",
+                          "en": "Hello, this account {} is harassing others. Please take action."},
+    "report_hate": {"ar": "مرحباً، هذا الحساب {} ينشر خطاب كراهية. ارجو الحذف.",
+                    "en": "Hello, this account {} is posting hate speech. Please remove it."},
+    "report_violence": {"ar": "مرحباً، هذا الحساب {} يحرض على العنف. ارجو المراجعة.",
+                        "en": "Hello, this account {} is promoting violence. Please review."},
+    "report_self_harm": {"ar": "مرحباً، هذا الحساب {} يتحدث عن إيذاء النفس. ارجو التدخل.",
+                         "en": "Hello, this account {} is talking about self harm. Please intervene."},
+    "report_illegal": {"ar": "مرحباً، هذا الحساب {} يقوم بنشاط غير قانوني. ارجو الحظر.",
+                       "en": "Hello, this account {} is doing illegal activity. Please ban it."},
+    "report_underage": {"ar": "مرحباً، هذا الحساب {} لشخص أقل من 13 سنة. ارجو الحذف.",
+                        "en": "Hello, this account {} belongs to someone under 13. Please remove."},
+    "report_copyright": {"ar": "مرحباً، هذا الحساب {} يسرق محتوى محمي بحقوق النشر.",
+                         "en": "Hello, this account {} is stealing copyrighted content."},
+    "report_scam": {"ar": "مرحباً، هذا الحساب {} يقوم بعملية احتيال. ارجو الحظر.",
+                    "en": "Hello, this account {} is running a scam. Please ban it."}
 }
 
 user_sessions = {}
 
-# دوال مساعدة
 def get_lang(user_id):
     c.execute("SELECT lang FROM users WHERE user_id=?", (user_id,))
     row = c.fetchone()
@@ -142,7 +160,6 @@ def is_admin(user_id):
 def generate_code(length=10):
     return 'CODE_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
 
-# البداية
 @bot.message_handler(commands=['start'])
 def start(message):
     markup = telebot.types.InlineKeyboardMarkup()
@@ -193,15 +210,14 @@ def show_main_menu(message, lang):
     markup = telebot.types.InlineKeyboardMarkup(row_width=2)
     markup.add(
         telebot.types.InlineKeyboardButton("فك الباند" if lang=="ar" else "Unban Account", callback_data="unban"),
-        telebot.types.InlineKeyboardButton("تبنيد حساب" if lang=="ar" else "Report Account", callback_data="report")
+        telebot.types.InlineKeyboardButton("تبنيد حساب" if lang=="ar" else "Report Account", callback_data="report_menu")
     )
     markup.add(
-        telebot.types.InlineKeyboardButton("المبرمج" if lang=="ar" else "Developer", callback_data="dev"),
+        telebot.types.InlineKeyboardButton("المبرمج" if lang=="ar" else "Developer", url=f"https://t.me/{DEV_USERNAME}"),
         telebot.types.InlineKeyboardButton("كود اشتراك" if lang=="ar" else "Subscription Code", callback_data="sub_code")
     )
     bot.send_message(message.chat.id, TEXTS[lang]["menu"].format(name=message.from_user.first_name), reply_markup=markup)
 
-# فك الباند
 @bot.callback_query_handler(func=lambda call: call.data == "unban")
 def unban_menu(call):
     if not is_subscribed(call.from_user.id):
@@ -220,25 +236,38 @@ def send_template(call):
     ban_type = call.data.split("_")[1]
     lang = get_lang(call.from_user.id)
     data = BAN_TYPES[ban_type]
-    template = MESSAGES[ban_type][lang].format(call.from_user.username or "username")
+    template = MESSAGES[ban_type].format(call.from_user.username or "username")
     msg = TEXTS[lang]["template_msg"].format(data[lang], template, data["link"])
     bot.send_message(call.from_user.id, msg, parse_mode="Markdown")
 
-# تبنيد حساب مخالف
-@bot.callback_query_handler(func=lambda call: call.data == "report")
-def report_account(call):
+@bot.callback_query_handler(func=lambda call: call.data == "report_menu")
+def report_menu(call):
     if not is_subscribed(call.from_user.id):
         lang = get_lang(call.from_user.id)
         bot.send_message(call.from_user.id, TEXTS[lang]["no_sub"])
         return
+
     lang = get_lang(call.from_user.id)
-    bot.send_message(call.from_user.id, TEXTS[lang]["report_msg"])
+    markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+    for key, val in REPORT_TYPES.items():
+        markup.add(telebot.types.InlineKeyboardButton(val[lang], callback_data=f"rep_{key}"))
+    bot.send_message(call.from_user.id, TEXTS[lang]["choose_report"], reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("rep_"))
+def get_report_target(call):
+    report_type = call.data.split("_")[1]
+    user_id = call.from_user.id
+    lang = get_lang(user_id)
+    user_sessions[user_id] = {"report_type": report_type}
+
+    target_msg = "أرسل رابط الحساب أو اليوزرنيم:" if lang=="ar" else "Send account link or username:"
+    bot.send_message(user_id, target_msg)
     bot.register_next_step_handler(call.message, get_report_count)
 
 def get_report_count(message):
     user_id = message.from_user.id
     lang = get_lang(user_id)
-    user_sessions[user_id] = {"target": message.text.strip()}
+    user_sessions[user_id]["target"] = message.text.strip()
 
     markup = telebot.types.InlineKeyboardMarkup(row_width=3)
     markup.add(
@@ -280,19 +309,18 @@ def generate_reports(call):
         return
 
     target = session["target"]
+    report_type = session["report_type"]
     count = session["count"]
     link = "https://help.instagram.com/contact/1652567838289083"
-    template = MESSAGES["report_violation"][lang].format(target)
+    template = MESSAGES[f"report_{report_type}"].format(target)
 
     msg = TEXTS[lang]["ready_msg"].format(count, target, delay, link, template, delay, count)
     bot.send_message(user_id, msg, parse_mode="Markdown")
     del user_sessions[user_id]
 
-# المبرمج والاشتراك
 @bot.callback_query_handler(func=lambda call: call.data == "dev")
 def developer(call):
-    lang = get_lang(call.from_user.id)
-    bot.send_message(call.from_user.id, TEXTS[lang]["developer"])
+    pass
 
 @bot.callback_query_handler(func=lambda call: call.data == "sub_code")
 def ask_code(call):
@@ -321,7 +349,6 @@ def activate_code(message):
     bot.send_message(user_id, TEXTS[lang]["activated"].format(exp_date))
     show_main_menu(message, lang)
 
-# لوحة الأدمن
 @bot.message_handler(commands=['admin'])
 def admin_panel(message):
     if not is_admin(message.from_user.id): return
@@ -338,7 +365,6 @@ def admin_panel(message):
 def admin_actions(call):
     if not is_admin(call.from_user.id): return
     action = call.data.split("_")[1]
-    lang = "ar"
 
     if action == "create":
         code = generate_code()
