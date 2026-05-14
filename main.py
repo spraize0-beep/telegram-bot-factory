@@ -78,16 +78,16 @@ BAN_TYPES = {
 }
 
 REPORT_TYPES = {
-    "fake": {"ar": "حساب مزيف", "en": "Fake Account", "reason": "impersonation"},
-    "spam": {"ar": "سبام", "en": "Spam", "reason": "spam"},
-    "harassment": {"ar": "تحرش/تنمر", "en": "Harassment", "reason": "harassment"},
-    "hate": {"ar": "خطاب كراهية", "en": "Hate Speech", "reason": "hate"},
-    "violence": {"ar": "عنف", "en": "Violence", "reason": "violence"},
-    "self_harm": {"ar": "إيذاء النفس", "en": "Self Harm", "reason": "self_harm"},
-    "illegal": {"ar": "نشاط غير قانوني", "en": "Illegal Activity", "reason": "illegal"},
-    "underage": {"ar": "قاصر", "en": "Underage", "reason": "underage"},
-    "copyright": {"ar": "انتهاك حقوق", "en": "Copyright", "reason": "copyright"},
-    "scam": {"ar": "احتيال", "en": "Scam", "reason": "scam"}
+    "fake": {"ar": "حساب مزيف", "en": "Fake Account"},
+    "spam": {"ar": "سبام", "en": "Spam"},
+    "harassment": {"ar": "تحرش/تنمر", "en": "Harassment"},
+    "hate": {"ar": "خطاب كراهية", "en": "Hate Speech"},
+    "violence": {"ar": "عنف", "en": "Violence"},
+    "self_harm": {"ar": "إيذاء النفس", "en": "Self Harm"},
+    "illegal": {"ar": "نشاط غير قانوني", "en": "Illegal Activity"},
+    "underage": {"ar": "قاصر", "en": "Underage"},
+    "copyright": {"ar": "انتهاك حقوق", "en": "Copyright"},
+    "scam": {"ar": "احتيال", "en": "Scam"}
 }
 
 MESSAGES = {
@@ -143,7 +143,8 @@ def check_channel(user_id):
     try:
         member = bot.get_chat_member(CHANNEL_ID, user_id)
         return member.status in ['member', 'administrator', 'creator']
-    except:
+    except Exception as e:
+        print(f"Channel check error: {e}")
         return False
 
 def is_subscribed(user_id):
@@ -182,37 +183,47 @@ def set_lang(call):
         conn.commit()
         check_subscription(call.message, lang)
     except Exception as e:
-        print(e)
+        print(f"Set lang error: {e}")
         bot.send_message(call.message.chat.id, "Error")
 
 def check_subscription(message, lang):
-    if check_channel(message.from_user.id):
-        show_main_menu(message, lang)
-    else:
-        markup = telebot.types.InlineKeyboardMarkup()
-        markup.add(telebot.types.InlineKeyboardButton("Join Channel", url=f"https://t.me/{CHANNEL_ID[1:]}"))
-        markup.add(telebot.types.InlineKeyboardButton("Check" if lang=="en" else "تحقق", callback_data="check_sub"))
-        bot.send_message(message.chat.id, TEXTS["join_channel"].format(CHANNEL_ID), reply_markup=markup)
+    try:
+        if check_channel(message.from_user.id):
+            show_main_menu(message, lang)
+        else:
+            markup = telebot.types.InlineKeyboardMarkup()
+            markup.add(telebot.types.InlineKeyboardButton("Join Channel", url=f"https://t.me/{CHANNEL_ID[1:]}"))
+            markup.add(telebot.types.InlineKeyboardButton("Check" if lang=="en" else "تحقق", callback_data="check_sub"))
+            bot.send_message(message.chat.id, TEXTS["join_channel"].format(CHANNEL_ID), reply_markup=markup)
+    except Exception as e:
+        print(f"Check sub error: {e}")
+        bot.send_message(message.chat.id, "Error checking subscription")
 
 @bot.callback_query_handler(func=lambda call: call.data == "check_sub")
 def check_sub(call):
-    lang = get_lang(call.from_user.id)
-    if check_channel(call.from_user.id):
-        show_main_menu(call.message, lang)
-    else:
-        bot.answer_callback_query(call.id, "Not subscribed yet" if lang=="en" else "لسه مش مشترك")
+    try:
+        lang = get_lang(call.from_user.id)
+        if check_channel(call.from_user.id):
+            show_main_menu(call.message, lang)
+        else:
+            bot.answer_callback_query(call.id, "Not subscribed yet" if lang=="en" else "لسه مش مشترك")
+    except Exception as e:
+        print(f"Check sub callback error: {e}")
 
 def show_main_menu(message, lang):
-    markup = telebot.types.InlineKeyboardMarkup(row_width=2)
-    markup.add(
-        telebot.types.InlineKeyboardButton("فك الباند" if lang=="ar" else "Unban Account", callback_data="unban"),
-        telebot.types.InlineKeyboardButton("تبنيد حساب" if lang=="ar" else "Report Account", callback_data="report_menu")
-    )
-    markup.add(
-        telebot.types.InlineKeyboardButton("المبرمج" if lang=="ar" else "Developer", url=f"https://t.me/{DEV_USERNAME}"),
-        telebot.types.InlineKeyboardButton("كود اشتراك" if lang=="ar" else "Subscription Code", callback_data="sub_code")
-    )
-    bot.send_message(message.chat.id, TEXTS["menu"].format(name=message.from_user.first_name), reply_markup=markup)
+    try:
+        markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+        markup.add(
+            telebot.types.InlineKeyboardButton("فك الباند" if lang=="ar" else "Unban Account", callback_data="unban"),
+            telebot.types.InlineKeyboardButton("تبنيد حساب" if lang=="ar" else "Report Account", callback_data="report_menu")
+        )
+        markup.add(
+            telebot.types.InlineKeyboardButton("المبرمج" if lang=="ar" else "Developer", url=f"https://t.me/{DEV_USERNAME}"),
+            telebot.types.InlineKeyboardButton("كود اشتراك" if lang=="ar" else "Subscription Code", callback_data="sub_code")
+        )
+        bot.send_message(message.chat.id, TEXTS["menu"].format(name=message.from_user.first_name), reply_markup=markup)
+    except Exception as e:
+        print(f"Menu error: {e}")
 
 @bot.callback_query_handler(func=lambda call: call.data == "unban")
 def unban_menu(call):
@@ -224,7 +235,7 @@ def unban_menu(call):
     lang = get_lang(call.from_user.id)
     markup = telebot.types.InlineKeyboardMarkup(row_width=2)
     for key, val in BAN_TYPES.items():
-        markup.add(telebot.types.InlineKeyboardButton(val[lang], callback_data=f"ban_{key}"))
+        markup.add(telebot.types.InlineKeyboardButton(val, callback_data=f"ban_{key}"))
     bot.send_message(call.from_user.id, TEXTS["choose_problem"], reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("ban_"))
@@ -233,11 +244,11 @@ def send_template(call):
         ban_type = call.data.split("_")[1]
         lang = get_lang(call.from_user.id)
         data = BAN_TYPES[ban_type]
-        template = MESSAGES[ban_type][lang].format(call.from_user.username or "username")
-        msg = TEXTS["template_msg"].format(data[lang], template, data["link"])
+        template = MESSAGES[ban_type].format(call.from_user.username or "username")
+        msg = TEXTS["template_msg"].format(data, template, data["link"])
         bot.send_message(call.from_user.id, msg, parse_mode="Markdown")
     except Exception as e:
-        print(e)
+        print(f"Send template error: {e}")
         bot.send_message(call.from_user.id, TEXTS["error"])
 
 @bot.callback_query_handler(func=lambda call: call.data == "report_menu")
@@ -250,7 +261,7 @@ def report_menu(call):
     lang = get_lang(call.from_user.id)
     markup = telebot.types.InlineKeyboardMarkup(row_width=2)
     for key, val in REPORT_TYPES.items():
-        markup.add(telebot.types.InlineKeyboardButton(val[lang], callback_data=f"rep_{key}"))
+        markup.add(telebot.types.InlineKeyboardButton(val, callback_data=f"rep_{key}"))
     bot.send_message(call.from_user.id, TEXTS["choose_report"], reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("rep_"))
@@ -265,7 +276,7 @@ def get_report_target(call):
         bot.send_message(user_id, target_msg)
         bot.register_next_step_handler(call.message, get_report_count)
     except Exception as e:
-        print(e)
+        print(f"Report target error: {e}")
 
 def get_report_count(message):
     user_id = message.from_user.id
@@ -316,13 +327,13 @@ def generate_reports(call):
         report_type = session["report_type"]
         count = session["count"]
         link = "https://help.instagram.com/contact/1652567838289083"
-        template = MESSAGES[f"report_{report_type}"][lang].format(target)
+        template = MESSAGES[f"report_{report_type}"].format(target)
 
         msg = TEXTS["ready_msg"].format(count, target, delay, link, template, delay, count)
         bot.send_message(user_id, msg, parse_mode="Markdown")
         del user_sessions[user_id]
     except Exception as e:
-        print(e)
+        print(f"Generate reports error: {e}")
         bot.send_message(call.from_user.id, TEXTS["error"])
 
 @bot.callback_query_handler(func=lambda call: call.data == "sub_code")
@@ -353,7 +364,7 @@ def activate_code(message):
         bot.send_message(user_id, TEXTS["activated"].format(exp_date))
         show_main_menu(message, lang)
     except Exception as e:
-        print(e)
+        print(f"Activate code error: {e}")
         bot.send_message(message.chat.id, TEXTS["error"])
 
 @bot.message_handler(commands=['admin'])
