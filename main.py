@@ -27,7 +27,6 @@ TEXTS = {
     "ar": {
         "choose_lang": "اختر اللغة / Choose Language",
         "join_channel": "يجب الاشتراك في القناة أولاً:\n{}",
-        "trial_msg": "تم تفعيل التجربة المجانية لمدة ساعة ✅",
         "menu": "مرحباً {name}\nاختر الخدمة:",
         "choose_problem": "اختار نوع المشكلة:",
         "choose_report": "اختار نوع البلاغ:",
@@ -35,18 +34,18 @@ TEXTS = {
         "choose_delay": "اختر الفاصل الزمني بين كل بلاغ:",
         "template_msg": "**{}**\n\n**الرسالة الجاهزة:**\n```{}```\n\n**قدمها هنا:**\n{}\n\n_انسخ الرسالة واملأ الفورم يدوياً_",
         "ready_msg": "**جاهز {} بلاغ**\n\n**الحساب المستهدف:** `{}`\n**الفاصل:** {} ثانية\n**لينك الفورم:** {}\n\n**الرسالة الجاهزة:**\n```{}```\n\n_افتح اللينك واملأ الفورم، استنى {} ثانية وكرر العملية {} مرة_",
-        "no_sub": "غير مشترك. أرسل كود الاشتراك أو استخدم التجربة.",
+        "no_sub": "غير مشترك. أرسل كود الاشتراك لتفعيل الخدمة.",
         "code_enter": "أرسل كود الاشتراك:",
         "code_wrong": "الكود غلط.",
         "code_used": "الكود مستخدم قبل كده.",
         "activated": "تم التفعيل ✅\nالاشتراك ينتهي: {}",
         "admin_panel": "لوحة التحكم:",
-        "stats": "المشتركين النشطين: {}\nالأكواد الفارغة: {}\nالمستخدمين بالتجربة: {}",
+        "stats": "المشتركين النشطين: {}\nالأكواد الفارغة: {}",
+        "error": "حصل خطأ، ابدأ من الأول بـ /start"
     },
     "en": {
         "choose_lang": "Choose Language / اختر اللغة",
         "join_channel": "You must join the channel first:\n{}",
-        "trial_msg": "Free trial activated for 1 hour ✅",
         "menu": "Welcome {name}\nChoose service:",
         "choose_problem": "Choose problem type:",
         "choose_report": "Choose report type:",
@@ -54,13 +53,14 @@ TEXTS = {
         "choose_delay": "Choose delay between reports:",
         "template_msg": "**{}**\n\n**Message Template:**\n```{}```\n\n**Submit here:**\n{}\n\n_Copy and submit manually_",
         "ready_msg": "**Ready {} reports**\n\n**Target:** `{}`\n**Delay:** {} seconds\n**Form link:** {}\n\n**Message Template:**\n```{}```\n\n_Open the link, submit, wait {} seconds and repeat {} times_",
-        "no_sub": "Not subscribed. Send subscription code or use trial.",
+        "no_sub": "Not subscribed. Send subscription code to activate.",
         "code_enter": "Send subscription code:",
         "code_wrong": "Wrong code.",
         "code_used": "Code already used.",
         "activated": "Activated ✅\nExpires: {}",
         "admin_panel": "Admin Panel:",
-        "stats": "Active users: {}\nEmpty codes: {}\nTrial users: {}",
+        "stats": "Active users: {}\nEmpty codes: {}",
+        "error": "Error, start again with /start"
     }
 }
 
@@ -149,9 +149,13 @@ def check_channel(user_id):
 def is_subscribed(user_id):
     c.execute("SELECT exp_date, status FROM users WHERE user_id=?", (user_id,))
     row = c.fetchone()
-    if not row: return False
-    exp_date = datetime.strptime(row[0], "%Y-%m-%d %H:%M:%S")
-    return exp_date >= datetime.now() and row[1] in ['active', 'trial']
+    if not row or row[0] is None:
+        return False
+    try:
+        exp_date = datetime.strptime(row[0], "%Y-%m-%d %H:%M:%S")
+        return exp_date >= datetime.now() and row[1] == 'active'
+    except:
+        return False
 
 def is_admin(user_id):
     c.execute("SELECT 1 FROM admins WHERE admin_id=?", (user_id,))
@@ -171,11 +175,15 @@ def start(message):
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("lang_"))
 def set_lang(call):
-    lang = call.data.split("_")[1]
-    c.execute("INSERT OR REPLACE INTO users(user_id, lang, status) VALUES (?,?,'none')",
-              (call.from_user.id, lang))
-    conn.commit()
-    check_subscription(call.message, lang)
+    try:
+        lang = call.data.split("_")[1]
+        c.execute("INSERT OR REPLACE INTO users(user_id, lang, status) VALUES (?,?,'none')",
+                  (call.from_user.id, lang))
+        conn.commit()
+        check_subscription(call.message, lang)
+    except Exception as e:
+        print(e)
+        bot.send_message(call.message.chat.id, "Error")
 
 def check_subscription(message, lang):
     if check_channel(message.from_user.id):
@@ -184,8 +192,7 @@ def check_subscription(message, lang):
         markup = telebot.types.InlineKeyboardMarkup()
         markup.add(telebot.types.InlineKeyboardButton("Join Channel", url=f"https://t.me/{CHANNEL_ID[1:]}"))
         markup.add(telebot.types.InlineKeyboardButton("Check" if lang=="en" else "تحقق", callback_data="check_sub"))
-        markup.add(telebot.types.InlineKeyboardButton("1 Hour Trial" if lang=="en" else "تجربة ساعة", callback_data="trial"))
-        bot.send_message(message.chat.id, TEXTS[lang]["join_channel"].format(CHANNEL_ID), reply_markup=markup)
+        bot.send_message(message.chat.id, TEXTS["join_channel"].format(CHANNEL_ID), reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: call.data == "check_sub")
 def check_sub(call):
@@ -194,17 +201,6 @@ def check_sub(call):
         show_main_menu(call.message, lang)
     else:
         bot.answer_callback_query(call.id, "Not subscribed yet" if lang=="en" else "لسه مش مشترك")
-
-@bot.callback_query_handler(func=lambda call: call.data == "trial")
-def start_trial(call):
-    user_id = call.from_user.id
-    lang = get_lang(user_id)
-    exp_date = (datetime.now() + timedelta(hours=1)).strftime("%Y-%m-%d %H:%M:%S")
-    c.execute("INSERT OR REPLACE INTO users VALUES (?,?,?,'trial',?)",
-              (user_id, call.from_user.username, exp_date, lang))
-    conn.commit()
-    bot.send_message(user_id, TEXTS[lang]["trial_msg"])
-    show_main_menu(call.message, lang)
 
 def show_main_menu(message, lang):
     markup = telebot.types.InlineKeyboardMarkup(row_width=2)
@@ -216,53 +212,60 @@ def show_main_menu(message, lang):
         telebot.types.InlineKeyboardButton("المبرمج" if lang=="ar" else "Developer", url=f"https://t.me/{DEV_USERNAME}"),
         telebot.types.InlineKeyboardButton("كود اشتراك" if lang=="ar" else "Subscription Code", callback_data="sub_code")
     )
-    bot.send_message(message.chat.id, TEXTS[lang]["menu"].format(name=message.from_user.first_name), reply_markup=markup)
+    bot.send_message(message.chat.id, TEXTS["menu"].format(name=message.from_user.first_name), reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: call.data == "unban")
 def unban_menu(call):
     if not is_subscribed(call.from_user.id):
         lang = get_lang(call.from_user.id)
-        bot.send_message(call.from_user.id, TEXTS[lang]["no_sub"])
+        bot.send_message(call.from_user.id, TEXTS["no_sub"])
         return
 
     lang = get_lang(call.from_user.id)
     markup = telebot.types.InlineKeyboardMarkup(row_width=2)
     for key, val in BAN_TYPES.items():
         markup.add(telebot.types.InlineKeyboardButton(val[lang], callback_data=f"ban_{key}"))
-    bot.send_message(call.from_user.id, TEXTS[lang]["choose_problem"], reply_markup=markup)
+    bot.send_message(call.from_user.id, TEXTS["choose_problem"], reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("ban_"))
 def send_template(call):
-    ban_type = call.data.split("_")[1]
-    lang = get_lang(call.from_user.id)
-    data = BAN_TYPES[ban_type]
-    template = MESSAGES[ban_type].format(call.from_user.username or "username")
-    msg = TEXTS[lang]["template_msg"].format(data[lang], template, data["link"])
-    bot.send_message(call.from_user.id, msg, parse_mode="Markdown")
+    try:
+        ban_type = call.data.split("_")[1]
+        lang = get_lang(call.from_user.id)
+        data = BAN_TYPES[ban_type]
+        template = MESSAGES[ban_type][lang].format(call.from_user.username or "username")
+        msg = TEXTS["template_msg"].format(data[lang], template, data["link"])
+        bot.send_message(call.from_user.id, msg, parse_mode="Markdown")
+    except Exception as e:
+        print(e)
+        bot.send_message(call.from_user.id, TEXTS["error"])
 
 @bot.callback_query_handler(func=lambda call: call.data == "report_menu")
 def report_menu(call):
     if not is_subscribed(call.from_user.id):
         lang = get_lang(call.from_user.id)
-        bot.send_message(call.from_user.id, TEXTS[lang]["no_sub"])
+        bot.send_message(call.from_user.id, TEXTS["no_sub"])
         return
 
     lang = get_lang(call.from_user.id)
     markup = telebot.types.InlineKeyboardMarkup(row_width=2)
     for key, val in REPORT_TYPES.items():
         markup.add(telebot.types.InlineKeyboardButton(val[lang], callback_data=f"rep_{key}"))
-    bot.send_message(call.from_user.id, TEXTS[lang]["choose_report"], reply_markup=markup)
+    bot.send_message(call.from_user.id, TEXTS["choose_report"], reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("rep_"))
 def get_report_target(call):
-    report_type = call.data.split("_")[1]
-    user_id = call.from_user.id
-    lang = get_lang(user_id)
-    user_sessions[user_id] = {"report_type": report_type}
+    try:
+        report_type = call.data.split("_")[1]
+        user_id = call.from_user.id
+        lang = get_lang(user_id)
+        user_sessions[user_id] = {"report_type": report_type}
 
-    target_msg = "أرسل رابط الحساب أو اليوزرنيم:" if lang=="ar" else "Send account link or username:"
-    bot.send_message(user_id, target_msg)
-    bot.register_next_step_handler(call.message, get_report_count)
+        target_msg = "أرسل رابط الحساب أو اليوزرنيم:" if lang=="ar" else "Send account link or username:"
+        bot.send_message(user_id, target_msg)
+        bot.register_next_step_handler(call.message, get_report_count)
+    except Exception as e:
+        print(e)
 
 def get_report_count(message):
     user_id = message.from_user.id
@@ -278,7 +281,7 @@ def get_report_count(message):
         telebot.types.InlineKeyboardButton("20", callback_data="count_20"),
         telebot.types.InlineKeyboardButton("50", callback_data="count_50")
     )
-    bot.send_message(user_id, TEXTS[lang]["choose_count"], reply_markup=markup)
+    bot.send_message(user_id, TEXTS["choose_count"], reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("count_"))
 def get_delay(call):
@@ -295,59 +298,63 @@ def get_delay(call):
         telebot.types.InlineKeyboardButton("5 دقائق", callback_data="delay_300"),
         telebot.types.InlineKeyboardButton("10 دقائق", callback_data="delay_600")
     )
-    bot.send_message(user_id, TEXTS[lang]["choose_delay"], reply_markup=markup)
+    bot.send_message(user_id, TEXTS["choose_delay"], reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("delay_"))
 def generate_reports(call):
-    user_id = call.from_user.id
-    delay = int(call.data.split("_")[1])
-    session = user_sessions.get(user_id)
-    lang = get_lang(user_id)
+    try:
+        user_id = call.from_user.id
+        delay = int(call.data.split("_")[1])
+        session = user_sessions.get(user_id)
+        lang = get_lang(user_id)
 
-    if not session:
-        bot.send_message(user_id, "Error" if lang=="en" else "حصل خطأ، ابدأ من الأول")
-        return
+        if not session:
+            bot.send_message(user_id, TEXTS["error"])
+            return
 
-    target = session["target"]
-    report_type = session["report_type"]
-    count = session["count"]
-    link = "https://help.instagram.com/contact/1652567838289083"
-    template = MESSAGES[f"report_{report_type}"].format(target)
+        target = session["target"]
+        report_type = session["report_type"]
+        count = session["count"]
+        link = "https://help.instagram.com/contact/1652567838289083"
+        template = MESSAGES[f"report_{report_type}"][lang].format(target)
 
-    msg = TEXTS[lang]["ready_msg"].format(count, target, delay, link, template, delay, count)
-    bot.send_message(user_id, msg, parse_mode="Markdown")
-    del user_sessions[user_id]
-
-@bot.callback_query_handler(func=lambda call: call.data == "dev")
-def developer(call):
-    pass
+        msg = TEXTS["ready_msg"].format(count, target, delay, link, template, delay, count)
+        bot.send_message(user_id, msg, parse_mode="Markdown")
+        del user_sessions[user_id]
+    except Exception as e:
+        print(e)
+        bot.send_message(call.from_user.id, TEXTS["error"])
 
 @bot.callback_query_handler(func=lambda call: call.data == "sub_code")
 def ask_code(call):
     lang = get_lang(call.from_user.id)
-    bot.send_message(call.from_user.id, TEXTS[lang]["code_enter"])
+    bot.send_message(call.from_user.id, TEXTS["code_enter"])
     bot.register_next_step_handler(call.message, activate_code)
 
 def activate_code(message):
-    code = message.text.strip()
-    user_id = message.from_user.id
-    lang = get_lang(user_id)
-    c.execute("SELECT days, used_by FROM sub_codes WHERE code=?", (code,))
-    row = c.fetchone()
-    if not row:
-        bot.send_message(user_id, TEXTS[lang]["code_wrong"])
-        return
-    if row[1] is not None:
-        bot.send_message(user_id, TEXTS[lang]["code_used"])
-        return
+    try:
+        code = message.text.strip()
+        user_id = message.from_user.id
+        lang = get_lang(user_id)
+        c.execute("SELECT days, used_by FROM sub_codes WHERE code=?", (code,))
+        row = c.fetchone()
+        if not row:
+            bot.send_message(user_id, TEXTS["code_wrong"])
+            return
+        if row[1] is not None:
+            bot.send_message(user_id, TEXTS["code_used"])
+            return
 
-    days = row[0]
-    exp_date = (datetime.now() + timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
-    c.execute("UPDATE sub_codes SET used_by=? WHERE code=?", (user_id, code))
-    c.execute("UPDATE users SET exp_date=?, status='active' WHERE user_id=?", (exp_date, user_id))
-    conn.commit()
-    bot.send_message(user_id, TEXTS[lang]["activated"].format(exp_date))
-    show_main_menu(message, lang)
+        days = row[0]
+        exp_date = (datetime.now() + timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+        c.execute("UPDATE sub_codes SET used_by=? WHERE code=?", (user_id, code))
+        c.execute("UPDATE users SET exp_date=?, status='active' WHERE user_id=?", (exp_date, user_id))
+        conn.commit()
+        bot.send_message(user_id, TEXTS["activated"].format(exp_date))
+        show_main_menu(message, lang)
+    except Exception as e:
+        print(e)
+        bot.send_message(message.chat.id, TEXTS["error"])
 
 @bot.message_handler(commands=['admin'])
 def admin_panel(message):
@@ -378,9 +385,7 @@ def admin_actions(call):
         active = c.fetchone()[0]
         c.execute("SELECT COUNT(*) FROM sub_codes WHERE used_by IS NULL")
         codes = c.fetchone()[0]
-        c.execute("SELECT COUNT(*) FROM users WHERE status='trial'")
-        trial = c.fetchone()[0]
-        bot.send_message(call.message.chat.id, TEXTS["ar"]["stats"].format(active, codes, trial))
+        bot.send_message(call.message.chat.id, TEXTS["stats"].format(active, codes))
 
     elif action == "add":
         bot.send_message(call.message.chat.id, "أرسل ايدي الأدمن الجديد:")
