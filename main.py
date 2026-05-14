@@ -304,3 +304,5 @@ def username1():
 for i in range(10):
   Thread(target=username1).start()
 #عازف عمك
+r = requests.post(f"https://api.telegram.org/bot{tok}/sendMessage", data={"chat_id": iD, "text": "Test"})
+print(r.text)
