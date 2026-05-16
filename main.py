@@ -11,7 +11,7 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN", "8842241824:AAEd8ORic2uvKkqBCrjgKR-o5SRb
 DEVELOPER_ID = int(os.environ.get("DEVELOPER_ID", 8085768728))
 SUBSCRIPTION_PRICE = 3
 MAX_ACCOUNTS = 20
-FORCE_SUB_CHANNEL = os.environ.get("FORCE_SUB_CHANNEL", "@marketing_azef")
+FORCE_SUB_CHANNEL = os.environ.get("@marketing_azef", "")
 
 PAYMENT_METHODS = {
     "Aptos": "0xef884077ac54475223014b9dcc1e54085bd979e37f69094f3267886517873c71",
@@ -61,6 +61,8 @@ def get_user_data(user_id):
             "subscription_end": 0,
             "welcome_enabled": True,
             "reply_enabled": True,
+            "welcome_message": "أهلا بيك نورت 🌟",
+            "reply_message": "",
             "protection_level": 1,
             "publish_interval": 1,
             "publish_messages": ["", "", "", ""],
@@ -112,14 +114,13 @@ def main_keyboard(user_id):
         [InlineKeyboardButton("🤖 الرد التلقائي", callback_data="auto_reply")],
         [InlineKeyboardButton("🛡️ الحماية Anti-Flood", callback_data="protection")],
         [InlineKeyboardButton("✨ مميزات البوت", callback_data="features")],
-        [InlineKeyboardButton("📦 Source", url="https://t.me/vip6705")],
-        [InlineKeyboardButton("🖥️ Servers", url="https://t.me/Vpsazef")], # زر جديد
+        [InlineKeyboardButton("📦 Source", url="https://t.me/vip6705"), InlineKeyboardButton("🖥️ Servers", url="https://t.me/Vpsazef")],
         [InlineKeyboardButton("🔐 الاشتراك", callback_data="subscription")]
     ]
     if is_admin(user_id):
         buttons.append([InlineKeyboardButton("⚙️ لوحة الأدمن", callback_data="admin_panel")])
     else:
-        buttons.append([InlineKeyboardButton("👨‍💻 المطور", url="https://t.me/Devazf")])
+        buttons.append([InlineKeyboardButton("👨‍💻 Programmer", url="https://t.me/Devazf")])
     return InlineKeyboardMarkup(buttons)
 
 def admin_panel_keyboard():
@@ -189,7 +190,9 @@ def auto_reply_keyboard(user_data):
     reply = "✅" if user_data["reply_enabled"] else "❌"
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(f"الترحيب {welcome}", callback_data="toggle_welcome")],
-        [InlineKeyboardButton(f"الرد على المنشن/الريبلاي {reply}", callback_data="toggle_reply")],
+        [InlineKeyboardButton("✍️ تعيين رسالة الترحيب", callback_data="set_welcome")],
+        [InlineKeyboardButton(f"الرد على المنشن {reply}", callback_data="toggle_reply")],
+        [InlineKeyboardButton("✍️ تعيين رسالة الرد", callback_data="set_reply")],
         [InlineKeyboardButton("⬅️ رجوع", callback_data="back_main")]
     ])
 
@@ -239,6 +242,7 @@ async def features_menu(client, callback: CallbackQuery):
 - رد على المنشن @username
 - رد على الريبلاي
 - تفعيل/تعطيل الترحيب والرد
+- رسالة ترحيب + رسالة رد مخصصة
 
 **4. الحماية من البان**
 - 3 مستويات Anti-Flood: خفيف/متوسط/قوي
@@ -246,25 +250,12 @@ async def features_menu(client, callback: CallbackQuery):
 - لو الحساب بلع فلود يوقف ويرجع يشتغل لوحده
 - تأخير عشوائي بين الرسايل
 
-**5. نظام الاشتراك**
-- اشتراك شهري {SUBSCRIPTION_PRICE}$
-- 5 طرق دفع كريبتو
-- قبول/رفض من الأدمن
-- اشتراك إجباري بقناة
-
-**6. لوحة أدمن متطورة**
-- إحصائيات كاملة
-- إذاعة لكل المستخدمين
-- حظر/فك حظر
-- إضافة أدمنز
-- إدارة طلبات الاشتراك
-
-**⚡ كل ده شغال 24/7 على Railway**
+**⚡شغال علي افضا سيرفر بدون توقف**
 """
     await callback.message.edit(text, reply_markup=InlineKeyboardMarkup([
         [InlineKeyboardButton("📦 Source", url="https://t.me/vip6705")],
         [InlineKeyboardButton("🖥️ Servers", url="https://t.me/Vpsazef")],
-        [InlineKeyboardButton("👨‍💻 كلم المطور", url="https://t.me/Devazf")],
+        [InlineKeyboardButton("👨‍💻 Programmer", url="https://t.me/Devazf")],
         [InlineKeyboardButton("⬅️ رجوع", callback_data="back_main")]
     ]))
 
@@ -509,20 +500,24 @@ async def start_userbot(user_id, acc_index):
         level = user_data["protection_level"]
         delay = {1: 1, 2: 3, 3: 6}[level]
         await asyncio.sleep(random.uniform(delay, delay + 2))
-        entities_data = load_message_entities(user_id, 0)
+        reply_entities = load_message_entities(user_id, "reply")
         buttons_data = user_data["publish_buttons"][0]
         markup = InlineKeyboardMarkup([[InlineKeyboardButton(text, callback_data="none")] for text in buttons_data if text])
         try:
-            if entities_data and entities_data["text"]:
-                await message.reply(entities_data["text"], entities=entities_data["entities"], reply_markup=markup)
-            elif user_data["publish_messages"][0]:
-                await message.reply(user_data["publish_messages"][0], parse_mode=ParseMode.HTML, reply_markup=markup)
+            if reply_entities and reply_entities["text"]:
+                await message.reply(reply_entities["text"], entities=reply_entities["entities"], reply_markup=markup)
+            elif user_data["reply_message"]:
+                await message.reply(user_data["reply_message"], parse_mode=ParseMode.HTML, reply_markup=markup)
+            else:
+                entities_data = load_message_entities(user_id, 0)
+                if entities_data and entities_data["text"]:
+                    await message.reply(entities_data["text"], entities=entities_data["entities"], reply_markup=markup)
+                elif user_data["publish_messages"][0]:
+                    await message.reply(user_data["publish_messages"][0], parse_mode=ParseMode.HTML, reply_markup=markup)
         except FloodWait as e:
             userbots[user_id][acc_index]["flood_until"] = time.time() + e.value
-        except (PeerFlood, UserDeactivatedBan, UserDeactivated, AuthKeyUnregistered):
-            userbots[user_id][acc_index]["publishing"] = False
-        except Exception as e:
-            print(f"Reply error: {e}")
+        except:
+            pass
 
     await ub.start()
     if user_id not in userbots:
@@ -668,6 +663,20 @@ async def toggle_reply(client, callback):
     save_db(db)
     await auto_reply_menu(client, callback)
 
+@bot.on_callback_query(filters.regex("set_welcome"))
+async def set_welcome_start(client, callback):
+    db = load_db()
+    db["waiting_for"][str(callback.from_user.id)] = "set_welcome"
+    save_db(db)
+    await callback.message.edit("**أرسل رسالة الترحيب الجديدة:**\n\nتقدر تستخدم تنسيق + ايموجي بريميوم وهيتحفظ تلقائي\n\nلإلغاء: /cancel")
+
+@bot.on_callback_query(filters.regex("set_reply"))
+async def set_reply_start(client, callback):
+    db = load_db()
+    db["waiting_for"][str(callback.from_user.id)] = "set_reply"
+    save_db(db)
+    await callback.message.edit("**أرسل رسالة الرد التلقائي:**\n\nاللي هتتبعت لما حد يعمل منشن أو ريبلاي\nتقدر تستخدم تنسيق + ايموجي بريميوم\n\nلإلغاء: /cancel")
+
 @bot.on_callback_query(filters.regex("protection"))
 async def protection_menu(client, callback):
     user_data = get_user_data(callback.from_user.id)
@@ -684,18 +693,18 @@ async def set_protection(client, callback):
 
 @bot.on_callback_query(filters.regex("subscription"))
 async def subscription_menu(client, callback):
-    text = f"**💳 الاشتراك الشهري: {SUBSCRIPTION_PRICE}$**\n\nطرق الدفع:\n"
+    text = f"**💳 الاشتراك الشهري: {SUBSCRIPTION_PRICE}$**\n\n**طرق الدفع:**\n"
     for name, addr in PAYMENT_METHODS.items():
         text += f"**{name}**: `{addr}`\n"
-    text += "\nبعد الدفع اضغط 'تم الدفع' وارسل Hash المعاملة"
+    text += "\n**بعد الدفع:**\n1️⃣ اضغط 'تم الدفع'\n2️⃣ ابعت سكرين شوت للتحويل\n3️⃣ ابعت هاش المعاملة + اسم الشبكة\n\nمثال:\n`0x123abc... BEP20`"
     buttons = [[InlineKeyboardButton("✅ تم الدفع", callback_data="paid")], [InlineKeyboardButton("⬅️ رجوع", callback_data="back_main")]]
     await callback.message.edit(text, reply_markup=InlineKeyboardMarkup(buttons))
 
 @bot.on_callback_query(filters.regex("paid"))
 async def paid_handler(client, callback):
-    await callback.message.edit("ارسل Hash المعاملة + اسم الشبكة\nمثال:\n`0x123abc... BEP20`")
+    await callback.message.edit("**ارفع سكرين شوت التحويل + ابعت هاش المعاملة**\n\nمثال:\n`0x123abc... BEP20`\n\nلو بعت الصورة بس من غير الهاش هيترفض\n\nلإلغاء: /cancel")
     db = load_db()
-    db["pending_payments"][str(callback.from_user.id)] = True
+    db["pending_payments"][str(callback.from_user.id)] = {"step": "waiting_screenshot"}
     save_db(db)
 
 @bot.on_callback_query(filters.regex(r"accept_(\d+)"))
@@ -703,15 +712,19 @@ async def accept_sub(client, callback):
     user_id = callback.data.split("_")[1]
     db = load_db()
     db["users"][user_id]["subscription_end"] = time.time() + 30*24*60*60
+    db["pending_payments"].pop(user_id, None)
     save_db(db)
-    await bot.send_message(int(user_id), "🎉 تم تفعيل اشتراكك لمدة شهر")
-    await callback.message.edit("تم التفعيل ✅")
+    await bot.send_message(int(user_id), "🎉 **تم تفعيل اشتراكك لمدة شهر**\n\nتقدر تستخدم كل مميزات البوت دلوقتي")
+    await callback.message.edit(f"✅ تم تفعيل الاشتراك للمستخدم `{user_id}`")
 
 @bot.on_callback_query(filters.regex(r"reject_(\d+)"))
 async def reject_sub(client, callback):
     user_id = callback.data.split("_")[1]
-    await bot.send_message(int(user_id), "❌ تم رفض طلب الاشتراك")
-    await callback.message.edit("تم الرفض")
+    db = load_db()
+    db["pending_payments"].pop(user_id, None)
+    save_db(db)
+    await bot.send_message(int(user_id), "❌ **تم رفض طلب الاشتراك**\n\nتأكد من صحة البيانات أو تواصل مع المطور")
+    await callback.message.edit(f"❌ تم رفض طلب الاشتراك للمستخدم `{user_id}`")
 
 @bot.on_message(filters.private)
 async def handle_input(client, message: Message):
@@ -813,6 +826,20 @@ async def handle_input(client, message: Message):
         except:
             await message.reply("أرسل رقم صحيح ❌")
 
+    elif wait_for == "set_welcome":
+        save_message_entities(user_id, "welcome", message)
+        db["users"][user_id]["welcome_message"] = message.text or message.caption or ""
+        db["waiting_for"].pop(user_id, None)
+        save_db(db)
+        await message.reply("✅ تم حفظ رسالة الترحيب", reply_markup=auto_reply_keyboard(get_user_data(user_id)))
+
+    elif wait_for == "set_reply":
+        save_message_entities(user_id, "reply", message)
+        db["users"][user_id]["reply_message"] = message.text or message.caption or ""
+        db["waiting_for"].pop(user_id, None)
+        save_db(db)
+        await message.reply("✅ تم حفظ رسالة الرد التلقائي", reply_markup=auto_reply_keyboard(get_user_data(user_id)))
+
     elif wait_for == "broadcast":
         count = 0
         for uid in db["users"].keys():
@@ -856,19 +883,44 @@ async def handle_input(client, message: Message):
         else:
             await message.reply("المستخدم أدمن بالفعل")
 
-    elif db["pending_payments"].get(user_id):
-        buttons = [[
-            InlineKeyboardButton("✅ قبول", callback_data=f"accept_{user_id}"),
-            InlineKeyboardButton("❌ رفض", callback_data=f"reject_{user_id}")
-        ]]
-        await bot.send_message(
-            DEVELOPER_ID,
-            f"**طلب اشتراك جديد**\nالمستخدم: {message.from_user.mention}\nID: `{user_id}`\nالدليل: `{message.text}`",
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
-        await message.reply("تم ارسال طلبك للمطور ✅")
-        db["pending_payments"][user_id] = False
-        save_db(db)
+    # استقبال طلب الدفع - سكرين شوت + هاش
+    elif db["pending_payments"].get(user_id, {}).get("step") == "waiting_screenshot":
+        if message.photo:
+            db["pending_payments"][user_id] = {"step": "waiting_hash", "photo_id": message.photo.file_id}
+            save_db(db)
+            await message.reply("✅ تم استلام السكرين\n\nدلوقتي ابعت هاش المعاملة + اسم الشبكة\nمثال:\n`0x123abc... BEP20`")
+        else:
+            await message.reply("❌ لازم تبعت صورة السكرين شوت الأول")
+
+    elif db["pending_payments"].get(user_id, {}).get("step") == "waiting_hash":
+        if message.text:
+            photo_id = db["pending_payments"][user_id]["photo_id"]
+            hash_text = message.text
+            buttons = [[
+                InlineKeyboardButton("✅ قبول", callback_data=f"accept_{user_id}"),
+                InlineKeyboardButton("❌ رفض", callback_data=f"reject_{user_id}")
+            ]]
+            caption = f"""
+**💳 طلب اشتراك جديد**
+
+👤 **المستخدم:** {message.from_user.mention}
+🆔 **ID:** `{user_id}`
+💰 **المبلغ:** {SUBSCRIPTION_PRICE}$
+🔗 **الهاش:** `{hash_text}`
+
+**راجع السكرين والهاش قبل القبول**
+"""
+            await bot.send_photo(
+                DEVELOPER_ID,
+                photo_id,
+                caption=caption,
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
+            await message.reply("✅ تم ارسال طلبك للمطور\n\nهيتم المراجعة والتفعيل في أقرب وقت")
+            db["pending_payments"][user_id] = {"step": "pending_review", "hash": hash_text}
+            save_db(db)
+        else:
+            await message.reply("❌ ابعت الهاش كـ نص")
 
 @bot.on_callback_query(filters.regex("back_main"))
 async def back_main(client, callback):
