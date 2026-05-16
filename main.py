@@ -1,7 +1,7 @@
 from pyrogram import Client, filters, idle
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery
-from pyrogram.enums import ParseMode, ChatMemberStatus
-from pyrogram.errors import FloodWait, PeerFlood, UserDeactivatedBan, PhoneCodeInvalid, SessionPasswordNeeded, UserDeactivated, AuthKeyUnregistered, UserNotParticipant
+from pyrogram.enums import ParseMode, ChatMemberStatus, ChatType
+from pyrogram.errors import FloodWait, PeerFlood, UserDeactivatedBan, PhoneCodeInvalid, SessionPasswordNeeded, UserDeactivated, AuthKeyUnregistered, UserNotParticipant, UsernameNotOccupied, PeerIdInvalid
 import asyncio, json, os, time, random, pickle
 from datetime import datetime, timedelta
 
@@ -11,7 +11,7 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN", "8842241824:AAEd8ORic2uvKkqBCrjgKR-o5SRb
 DEVELOPER_ID = int(os.environ.get("DEVELOPER_ID", 8085768728))
 SUBSCRIPTION_PRICE = 3
 MAX_ACCOUNTS = 20
-FORCE_SUB_CHANNEL = os.environ.get("@marketing_azef", "")
+FORCE_SUB_CHANNEL = os.environ.get("FORCE_SUB_CHANNEL", "")
 
 PAYMENT_METHODS = {
     "Aptos": "0xef884077ac54475223014b9dcc1e54085bd979e37f69094f3267886517873c71",
@@ -107,12 +107,9 @@ async def check_subscription(user_id):
     db = load_db()
     if str(user_id) in db["banned_users"]:
         return False, "banned"
-
-    # تحقق من الاشتراك الإجباري أولاً
     is_sub, channel = await check_force_sub(user_id)
     if not is_sub:
         return False, channel
-
     user = get_user_data(user_id)
     return user.get("subscription_end", 0) > time.time(), "subscription"
 
@@ -132,6 +129,7 @@ def main_keyboard(user_id):
         [InlineKeyboardButton("📢 إعدادات النشر", callback_data="publish_settings")],
         [InlineKeyboardButton("🤖 الرد التلقائي", callback_data="auto_reply")],
         [InlineKeyboardButton("🛡️ الحماية Anti-Flood", callback_data="protection")],
+        [InlineKeyboardButton("👥 إدارة المجموعات", callback_data="groups_menu")],
         [InlineKeyboardButton("✨ مميزات البوت", callback_data="features")],
         [InlineKeyboardButton("📦 Source", url="https://t.me/vip6705"), InlineKeyboardButton("🖥️ Servers", url="https://t.me/Vpsazef")],
         [InlineKeyboardButton("🔐 الاشتراك", callback_data="subscription")]
@@ -139,7 +137,7 @@ def main_keyboard(user_id):
     if is_admin(user_id):
         buttons.append([InlineKeyboardButton("⚙️ لوحة الأدمن", callback_data="admin_panel")])
     else:
-        buttons.append([InlineKeyboardButton("👨‍💻 المطور", url="https://t.me/Devazf")])
+        buttons.append([InlineKeyboardButton("👨‍💻 Programmer", url="https://t.me/Devazf")])
     return InlineKeyboardMarkup(buttons)
 
 def admin_panel_keyboard():
@@ -171,7 +169,8 @@ def accounts_keyboard(user_id):
         else:
             status = "🔴 متوقف"
         prefix = "⭐ " if i == active_index else ""
-        buttons.append([InlineKeyboardButton(f"{prefix}{status} {acc['phone']}", callback_data=f"acc_{i}")])
+        group_count = len([g for g in acc.get('groups', []) if g.get('enabled', True)])
+        buttons.append([InlineKeyboardButton(f"{prefix}{status} {acc['phone']} | 👥{group_count}", callback_data=f"acc_{i}")])
     buttons.append([InlineKeyboardButton("➕ إضافة حساب", callback_data="add_account")])
     buttons.append([InlineKeyboardButton("🔄 تبديل الحساب النشط", callback_data="switch_account")])
     buttons.append([InlineKeyboardButton("⬅️ رجوع", callback_data="back_main")])
@@ -191,6 +190,14 @@ def account_control_keyboard(index, user_id):
         [InlineKeyboardButton("📤 نشر الآن", callback_data=f"publishnow_{index}")],
         [InlineKeyboardButton("🗑️ حذف الحساب", callback_data=f"delacc_{index}")],
         [InlineKeyboardButton("⬅️ رجوع", callback_data="manage_accounts")]
+    ])
+
+def groups_menu_keyboard():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("📥 جلب كل المجموعات", callback_data="fetch_groups")],
+        [InlineKeyboardButton("➕ إضافة مجموعة يدوي", callback_data="add_group")],
+        [InlineKeyboardButton("📋 عرض المجموعات", callback_data="list_groups")],
+        [InlineKeyboardButton("⬅️ رجوع", callback_data="back_main")]
     ])
 
 def publish_settings_keyboard():
@@ -229,19 +236,15 @@ async def start(client, message: Message):
     db = load_db()
     if str(message.from_user.id) in db["banned_users"]:
         return await message.reply("❌ تم حظرك من استخدام البوت")
-
     get_user_data(message.from_user.id)
     db["stats"]["total_users"] = len(db["users"])
     save_db(db)
-
-    # تحقق الاشتراك الإجباري
     is_sub, channel = await check_force_sub(message.from_user.id)
     if not is_sub:
         return await message.reply(
             f"**⚠️ يجب الاشتراك في القناة أولاً**\n\nالقناة: {channel}\n\nاشترك وبعدين اضغط تحقق",
             reply_markup=force_sub_keyboard(channel)
         )
-
     has_sub, _ = await check_subscription(message.from_user.id)
     sub_status = "✅ مفعل" if has_sub else "❌ غير مفعل"
     await message.reply(
@@ -254,40 +257,46 @@ async def check_force_sub_callback(client, callback: CallbackQuery):
     is_sub, channel = await check_force_sub(callback.from_user.id)
     if is_sub:
         await callback.answer("✅ تم التحقق من الاشتراك", show_alert=True)
-        await callback.message.edit(
-            "**القائمة الرئيسية**",
-            reply_markup=main_keyboard(callback.from_user.id)
-        )
+        await callback.message.edit("**القائمة الرئيسية**", reply_markup=main_keyboard(callback.from_user.id))
     else:
         await callback.answer("❌ لسه مش مشترك في القناة", show_alert=True)
 
 @bot.on_callback_query(filters.regex("features"))
 async def features_menu(client, callback: CallbackQuery):
     text = f"""
-**✨ مميزات بوت النشر المتطور**
+**✨ مميزات بوت النشر المتطور V2**
 
-**1. إدارة الحسابات**
+**1. إدارة الحسابات المتطورة**
 - إضافة لحد {MAX_ACCOUNTS} حساب تيليجرام
 - تشغيل/إيقاف كل حساب منفصل
 - تبديل الحساب النشط للنشر بضغطة
-- جلب المجموعات تلقائي
+- حالة الحساب: شغال/متوقف/فلود + عداد
 
-**2. النشر الذكي**
+**2. إدارة المجموعات الاحترافية**
+- جلب كل المجموعات بضغطة
+- إضافة مجموعة يدوي بـ ID أو يوزر
+- حذف مجموعة معينة
+- تفعيل/تعطيل النشر في مجموعة
+- عرض المجموعات المفعلة/المعطلة
+
+**3. النشر الذكي**
 - 4 رسايل مختلفة بترتيب تلقائي
 - 4 أزرار فقط لكل الرسايل
 - يحفظ التنسيق كامل: عريض، مائل، كود، اقتباس
 - يحفظ ايموجي بريميوم تلقائي
 - تظبيط وقت النشر بالدقايق
+- نشر فوري في كل المجموعات
 
-**3. الرد التلقائي**
+**4. الرد التلقائي**
 - رد على المنشن @username
 - رد على الريبلاي
 - رسالة ترحيب + رسالة رد مخصصة
 
-**4. الحماية من البان**
+**5. الحماية من البان**
 - 3 مستويات Anti-Flood: خفيف/متوسط/قوي
 - معالجة FloodWait تلقائية
 - لو الحساب بلع فلود يوقف ويرجع يشتغل لوحده
+- تأخير عشوائي بين الرسايل
 
 **⚡ شغال علي اقوي سيرفر بدون توقف**
 """
@@ -298,8 +307,134 @@ async def features_menu(client, callback: CallbackQuery):
         [InlineKeyboardButton("⬅️ رجوع", callback_data="back_main")]
     ]))
 
-# باقي الدوال زي ما هي من الكود اللي فوق...
-# هنكمل من اول admin_panel
+@bot.on_callback_query(filters.regex("groups_menu"))
+async def groups_menu(client, callback: CallbackQuery):
+    has_sub, reason = await check_subscription(callback.from_user.id)
+    if not has_sub:
+        if reason == "banned":
+            return await callback.answer("❌ تم حظرك", show_alert=True)
+        elif reason.startswith("@"):
+            return await callback.answer(f"اشترك في القناة أولاً: {reason}", show_alert=True)
+        else:
+            return await callback.answer("فعّل الاشتراك أولاً ❌", show_alert=True)
+
+    db = load_db()
+    accounts = db["accounts"].get(str(callback.from_user.id), [])
+    if not accounts:
+        return await callback.answer("ضيف حساب أولاً ❌", show_alert=True)
+
+    user_data = get_user_data(callback.from_user.id)
+    active_index = user_data.get("active_account_index", 0)
+    if active_index >= len(accounts):
+        return await callback.answer("الحساب النشط غير موجود ❌", show_alert=True)
+
+    groups = accounts[active_index].get("groups", [])
+    enabled = len([g for g in groups if g.get("enabled", True)])
+    await callback.message.edit(
+        f"**👥 إدارة المجموعات**\n\n**الحساب النشط:** `{accounts[active_index]['phone']}`\n**المجموعات:** {len(groups)}\n**المفعلة:** {enabled}\n**المعطلة:** {len(groups) - enabled}",
+        reply_markup=groups_menu_keyboard()
+    )
+
+@bot.on_callback_query(filters.regex("fetch_groups"))
+async def fetch_groups(client, callback: CallbackQuery):
+    db = load_db()
+    user_data = get_user_data(callback.from_user.id)
+    active_index = user_data.get("active_account_index", 0)
+    accounts = db["accounts"].get(str(callback.from_user.id), [])
+
+    if active_index >= len(accounts):
+        return await callback.answer("الحساب النشط غير موجود ❌", show_alert=True)
+
+    if str(callback.from_user.id) not in userbots or active_index not in userbots[str(callback.from_user.id)]:
+        return await callback.answer("شغل الحساب النشط أولاً ❌", show_alert=True)
+
+    ub = userbots[str(callback.from_user.id)][active_index]["client"]
+    await callback.answer("⏳ جاري جلب المجموعات...", show_alert=False)
+
+    groups = []
+    async for dialog in ub.get_dialogs():
+        if dialog.chat.type in [ChatType.GROUP, ChatType.SUPERGROUP]:
+            groups.append({
+                "id": dialog.chat.id,
+                "title": dialog.chat.title,
+                "username": dialog.chat.username,
+                "enabled": True
+            })
+
+    db["accounts"][str(callback.from_user.id)][active_index]["groups"] = groups
+    save_db(db)
+    await callback.answer(f"✅ تم جلب {len(groups)} مجموعة", show_alert=True)
+    await groups_menu(client, callback)
+
+@bot.on_callback_query(filters.regex("add_group"))
+async def add_group_start(client, callback: CallbackQuery):
+    db = load_db()
+    db["waiting_for"][str(callback.from_user.id)] = "add_group"
+    save_db(db)
+    await callback.message.edit("**أرسل ID المجموعة أو اليوزر:**\n\nمثال:\n`-1001234567890`\nأو\n`@groupusername`\n\nلإلغاء: /cancel")
+
+@bot.on_callback_query(filters.regex("list_groups"))
+async def list_groups(client, callback: CallbackQuery):
+    db = load_db()
+    user_data = get_user_data(callback.from_user.id)
+    active_index = user_data.get("active_account_index", 0)
+    accounts = db["accounts"].get(str(callback.from_user.id), [])
+
+    if active_index >= len(accounts):
+        return await callback.answer("الحساب النشط غير موجود ❌", show_alert=True)
+
+    groups = accounts[active_index].get("groups", [])
+    if not groups:
+        return await callback.message.edit("**لا توجد مجموعات**\n\nاضغط 'جلب كل المجموعات' أولاً", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ رجوع", callback_data="groups_menu")]]))
+
+    text = "**📋 المجموعات:**\n\n"
+    buttons = []
+    for i, g in enumerate(groups[:20]): # أول 20 مجموعة بس
+        status = "✅" if g.get("enabled", True) else "❌"
+        username = f"@{g['username']}" if g.get('username') else f"`{g['id']}`"
+        text += f"{i+1}. {status} {g['title']}\n{username}\n\n"
+        buttons.append([
+            InlineKeyboardButton(f"{'🔴 تعطيل' if g.get('enabled', True) else '🟢 تفعيل'} {i+1}", callback_data=f"toggle_group_{i}"),
+            InlineKeyboardButton(f"🗑️ حذف {i+1}", callback_data=f"del_group_{i}")
+        ])
+
+    buttons.append([InlineKeyboardButton("⬅️ رجوع", callback_data="groups_menu")])
+    await callback.message.edit(text, reply_markup=InlineKeyboardMarkup(buttons))
+
+@bot.on_callback_query(filters.regex(r"toggle_group_(\d+)"))
+async def toggle_group(client, callback: CallbackQuery):
+    index = int(callback.data.split("_")[2])
+    db = load_db()
+    user_data = get_user_data(callback.from_user.id)
+    active_index = user_data.get("active_account_index", 0)
+    groups = db["accounts"][str(callback.from_user.id)][active_index]["groups"]
+
+    if index >= len(groups):
+        return await callback.answer("المجموعة غير موجودة ❌", show_alert=True)
+
+    current = groups[index].get("enabled", True)
+    groups[index]["enabled"] = not current
+    save_db(db)
+    await callback.answer(f"{'✅ تم التفعيل' if not current else '❌ تم التعطيل'}")
+    await list_groups(client, callback)
+
+@bot.on_callback_query(filters.regex(r"del_group_(\d+)"))
+async def delete_group(client, callback: CallbackQuery):
+    index = int(callback.data.split("_")[2])
+    db = load_db()
+    user_data = get_user_data(callback.from_user.id)
+    active_index = user_data.get("active_account_index", 0)
+    groups = db["accounts"][str(callback.from_user.id)][active_index]["groups"]
+
+    if index >= len(groups):
+        return await callback.answer("المجموعة غير موجودة ❌", show_alert=True)
+
+    deleted = groups.pop(index)
+    save_db(db)
+    await callback.answer(f"✅ تم حذف {deleted['title']}")
+    await list_groups(client, callback)
+
+# باقي الدوال زي admin_panel و handle_input وكل حاجة تانية...
 
 @bot.on_callback_query(filters.regex("admin_panel"))
 async def admin_panel(client, callback: CallbackQuery):
@@ -313,7 +448,8 @@ async def admin_stats(client, callback: CallbackQuery):
     active_subs = sum(1 for u in db["users"].values() if u.get("subscription_end", 0) > time.time())
     total_accounts = sum(len(accs) for accs in db["accounts"].values())
     active_userbots = sum(len(accs) for accs in userbots.values())
-    text = f"**📊 الإحصائيات**\n\n👥 إجمالي المستخدمين: `{len(db['users'])}`\n✅ الاشتراكات النشطة: `{active_subs}`\n👤 إجمالي الحسابات: `{total_accounts}`\n🟢 الحسابات الشغالة: `{active_userbots}`\n🚫 المحظورين: `{len(db['banned_users'])}`\n⏳ طلبات دفع: `{len(db['pending_payments'])}`"
+    total_groups = sum(len(acc.get("groups", [])) for accs in db["accounts"].values() for acc in accs)
+    text = f"**📊 الإحصائيات**\n\n👥 إجمالي المستخدمين: `{len(db['users'])}`\n✅ الاشتراكات النشطة: `{active_subs}`\n👤 إجمالي الحسابات: `{total_accounts}`\n🟢 الحسابات الشغالة: `{active_userbots}`\n👥 إجمالي المجموعات: `{total_groups}`\n🚫 المحظورين: `{len(db['banned_users'])}`\n⏳ طلبات دفع: `{len(db['pending_payments'])}`"
     await callback.message.edit(text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ رجوع", callback_data="admin_panel")]]))
 
 @bot.on_callback_query(filters.regex("admin_broadcast"))
@@ -407,8 +543,9 @@ async def acc_menu(client, callback):
         if flood_until > time.time():
             remaining = int(flood_until - time.time())
             flood_text = f"\n⏳ **فلود:** متبقي {remaining} ثانية"
+    enabled_groups = len([g for g in acc.get('groups', []) if g.get('enabled', True)])
     await callback.message.edit(
-        f"**التحكم في:** `{acc['phone']}`{flood_text}\n**المجموعات:** {len(acc['groups'])}",
+        f"**التحكم في:** `{acc['phone']}`{flood_text}\n**المجموعات:** {len(acc.get('groups', []))} | **المفعلة:** {enabled_groups}",
         reply_markup=account_control_keyboard(index, callback.from_user.id)
     )
 
@@ -430,7 +567,8 @@ async def account_status(client, callback):
         else:
             status = "🟢 شغال"
         publishing = "✅ مفعل" if userbots[user_id][index].get("publishing") else "❌ معطل"
-    text = f"**📊 حالة الحساب**\n\n📱 **الرقم:** `{acc['phone']}`\n🔌 **الحالة:** {status}{flood_text}\n📢 **النشر:** {publishing}\n👥 **المجموعات:** {len(acc['groups'])}"
+    enabled_groups = len([g for g in acc.get('groups', []) if g.get('enabled', True)])
+    text = f"**📊 حالة الحساب**\n\n📱 **الرقم:** `{acc['phone']}`\n🔌 **الحالة:** {status}{flood_text}\n📢 **النشر:** {publishing}\n👥 **المجموعات:** {len(acc.get('groups', []))} | **المفعلة:** {enabled_groups}"
     await callback.answer(text, show_alert=True)
 
 @bot.on_callback_query(filters.regex(r"toggle_acc_(\d+)"))
@@ -487,7 +625,9 @@ async def auto_publish_loop(user_id, acc_index):
             user_data = get_user_data(user_id)
             acc = db["accounts"][user_id][acc_index]
             interval = user_data["publish_interval"] * 60
-            if not acc["groups"]:
+            # فلتر المجموعات المفعلة بس
+            active_groups = [g for g in acc.get("groups", []) if g.get("enabled", True)]
+            if not active_groups:
                 await asyncio.sleep(10)
                 continue
             ub = userbots[user_id][acc_index]["client"]
@@ -498,7 +638,7 @@ async def auto_publish_loop(user_id, acc_index):
                 if not userbots[user_id][acc_index].get("publishing"):
                     break
                 entities_data = load_message_entities(user_id, msg_index)
-                for group in acc["groups"]:
+                for group in active_groups:
                     try:
                         if entities_data and entities_data["text"]:
                             await ub.send_message(group["id"], entities_data["text"], entities=entities_data["entities"], reply_markup=markup)
@@ -509,7 +649,8 @@ async def auto_publish_loop(user_id, acc_index):
                         userbots[user_id][acc_index]["flood_until"] = time.time() + e.value
                         await asyncio.sleep(e.value)
                         break
-                    except:
+                    except Exception as e:
+                        print(f"Publish error in {group['id']}: {e}")
                         pass
                 await asyncio.sleep(interval)
         except asyncio.CancelledError:
@@ -570,13 +711,19 @@ async def start_userbot(user_id, acc_index):
             pass
 
     await ub.start()
-    # جلب المجموعات تلقائي
-    groups = []
-    async for dialog in ub.get_dialogs():
-        if dialog.chat.type in ["group", "supergroup"]:
-            groups.append({"id": dialog.chat.id, "title": dialog.chat.title})
-    db["accounts"][user_id][acc_index]["groups"] = groups
-    save_db(db)
+    # جلب المجموعات تلقائي لو فاضية
+    if not acc.get("groups"):
+        groups = []
+        async for dialog in ub.get_dialogs():
+            if dialog.chat.type in [ChatType.GROUP, ChatType.SUPERGROUP]:
+                groups.append({
+                    "id": dialog.chat.id,
+                    "title": dialog.chat.title,
+                    "username": dialog.chat.username,
+                    "enabled": True
+                })
+        db["accounts"][user_id][acc_index]["groups"] = groups
+        save_db(db)
 
     if user_id not in userbots:
         userbots[user_id] = {}
@@ -593,18 +740,24 @@ async def publish_now(client, callback):
     user_data = get_user_data(user_id)
     if user_id not in userbots or index not in userbots[user_id]:
         return await callback.answer("شغل الحساب أولاً ❌", show_alert=True)
-    if not acc["groups"]:
-        return await callback.answer("مفيش مجموعات ❌", show_alert=True)
+
+    active_groups = [g for g in acc.get("groups", []) if g.get("enabled", True)]
+    if not active_groups:
+        return await callback.answer("مفيش مجموعات مفعلة ❌", show_alert=True)
+
     ub = userbots[user_id][index]["client"]
     flood_until = userbots[user_id][index].get("flood_until", 0)
     if flood_until > time.time():
         remaining = int(flood_until - time.time())
         return await callback.answer(f"الحساب في فلود. متبقي {remaining}ث ❌", show_alert=True)
+
     sent = 0
     entities_data = load_message_entities(user_id, 0)
     buttons_data = user_data["publish_buttons"]
     markup = InlineKeyboardMarkup([[InlineKeyboardButton(text, callback_data="none")] for text in buttons_data if text])
-    for group in acc["groups"]:
+
+    await callback.answer("⏳ جاري النشر...", show_alert=False)
+    for group in active_groups:
         try:
             if entities_data and entities_data["text"]:
                 await ub.send_message(group["id"], entities_data["text"], entities=entities_data["entities"], reply_markup=markup)
@@ -614,12 +767,12 @@ async def publish_now(client, callback):
             await asyncio.sleep(random.uniform(2, 5))
         except FloodWait as e:
             userbots[user_id][index]["flood_until"] = time.time() + e.value
-            await callback.answer(f"⏳ فلود {e.value}ث", show_alert=True)
-            break
+            await callback.message.edit(f"⏳ فلود {e.value}ث\nتم النشر في {sent} مجموعة", reply_markup=account_control_keyboard(index, callback.from_user.id))
+            return
         except Exception as e:
             print(f"Publish error: {e}")
-    if sent > 0:
-        await callback.answer(f"✅ تم النشر في {sent} مجموعة", show_alert=True)
+
+    await callback.message.edit(f"✅ تم النشر في {sent} مجموعة", reply_markup=account_control_keyboard(index, callback.from_user.id))
 
 @bot.on_callback_query(filters.regex(r"delacc_(\d+)"))
 async def delete_account(client, callback):
@@ -879,6 +1032,46 @@ async def handle_input(client, message: Message):
         db["waiting_for"].pop(user_id, None)
         save_db(db)
         await message.reply("✅ تم حفظ رسالة الرد التلقائي", reply_markup=auto_reply_keyboard(get_user_data(user_id)))
+
+    elif wait_for == "add_group":
+        group_input = message.text.strip()
+        db = load_db()
+        user_data = get_user_data(user_id)
+        active_index = user_data.get("active_account_index", 0)
+        accounts = db["accounts"].get(user_id, [])
+
+        if active_index >= len(accounts):
+            return await message.reply("الحساب النشط غير موجود ❌")
+
+        if str(user_id) not in userbots or active_index not in userbots[str(user_id)]:
+            return await message.reply("شغل الحساب النشط أولاً ❌")
+
+        ub = userbots[str(user_id)][active_index]["client"]
+        try:
+            chat = await ub.get_chat(group_input)
+            if chat.type not in [ChatType.GROUP, ChatType.SUPERGROUP]:
+                return await message.reply("❌ ده مش جروب")
+
+            groups = db["accounts"][user_id][active_index].get("groups", [])
+            if any(g["id"] == chat.id for g in groups):
+                return await message.reply("❌ المجموعة مضافة بالفعل")
+
+            groups.append({
+                "id": chat.id,
+                "title": chat.title,
+                "username": chat.username,
+                "enabled": True
+            })
+            db["accounts"][user_id][active_index]["groups"] = groups
+            db["waiting_for"].pop(user_id, None)
+            save_db(db)
+            await message.reply(f"✅ تم إضافة المجموعة: {chat.title}", reply_markup=groups_menu_keyboard())
+        except UsernameNotOccupied:
+            await message.reply("❌ اليوزر غير موجود")
+        except PeerIdInvalid:
+            await message.reply("❌ ID غير صحيح")
+        except Exception as e:
+            await message.reply(f"❌ خطأ: {e}")
 
     elif wait_for == "broadcast":
         count = 0
