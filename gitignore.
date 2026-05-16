@@ -1,3 +1,6 @@
+sessions/
+entities/
+db.json
 __pycache__/
 *.pyc
 .env
