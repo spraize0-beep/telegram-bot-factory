@@ -1,7 +1,7 @@
 from pyrogram import Client, filters, idle
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery
 from pyrogram.enums import ParseMode, ChatMemberStatus
-from pyrogram.errors import FloodWait, PeerFlood, UserDeactivatedBan, PhoneCodeInvalid, SessionPasswordNeeded, UserDeactivated, AuthKeyUnregistered
+from pyrogram.errors import FloodWait, PeerFlood, UserDeactivatedBan, PhoneCodeInvalid, SessionPasswordNeeded, UserDeactivated, AuthKeyUnregistered, UserNotParticipant
 import asyncio, json, os, time, random, pickle
 from datetime import datetime, timedelta
 
@@ -66,7 +66,7 @@ def get_user_data(user_id):
             "protection_level": 1,
             "publish_interval": 1,
             "publish_messages": ["", "", "", ""],
-            "publish_buttons": [["زر1", "زر2"], ["زر3", "زر4"], ["زر5", "زر6"], ["زر7", "زر8"]],
+            "publish_buttons": ["زر1", "زر2", "زر3", "زر4"],
             "groups": [],
             "active_account_index": 0
         }
@@ -89,23 +89,42 @@ def load_message_entities(user_id, msg_index):
             return pickle.load(f)
     return None
 
+async def check_force_sub(user_id):
+    if not FORCE_SUB_CHANNEL:
+        return True, None
+    try:
+        member = await bot.get_chat_member(FORCE_SUB_CHANNEL, user_id)
+        if member.status in [ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]:
+            return True, None
+        else:
+            return False, FORCE_SUB_CHANNEL
+    except UserNotParticipant:
+        return False, FORCE_SUB_CHANNEL
+    except:
+        return True, None
+
 async def check_subscription(user_id):
     db = load_db()
     if str(user_id) in db["banned_users"]:
-        return False
+        return False, "banned"
+
+    # تحقق من الاشتراك الإجباري أولاً
+    is_sub, channel = await check_force_sub(user_id)
+    if not is_sub:
+        return False, channel
+
     user = get_user_data(user_id)
-    if FORCE_SUB_CHANNEL:
-        try:
-            member = await bot.get_chat_member(FORCE_SUB_CHANNEL, user_id)
-            if member.status not in [ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]:
-                return False
-        except:
-            return False
-    return user.get("subscription_end", 0) > time.time()
+    return user.get("subscription_end", 0) > time.time(), "subscription"
 
 def is_admin(user_id):
     db = load_db()
     return str(user_id) in db["admins"]
+
+def force_sub_keyboard(channel):
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("📢 اشترك في القناة", url=f"https://t.me/{channel.replace('@', '')}")],
+        [InlineKeyboardButton("✅ تحققت من الاشتراك", callback_data="check_force_sub")]
+    ])
 
 def main_keyboard(user_id):
     buttons = [
@@ -120,7 +139,7 @@ def main_keyboard(user_id):
     if is_admin(user_id):
         buttons.append([InlineKeyboardButton("⚙️ لوحة الأدمن", callback_data="admin_panel")])
     else:
-        buttons.append([InlineKeyboardButton("👨‍💻 Programmer", url="https://t.me/Devazf")])
+        buttons.append([InlineKeyboardButton("👨‍💻 المطور", url="https://t.me/Devazf")])
     return InlineKeyboardMarkup(buttons)
 
 def admin_panel_keyboard():
@@ -169,7 +188,6 @@ def account_control_keyboard(index, user_id):
         [InlineKeyboardButton("▶️ تشغيل الحساب" if not acc_active else "⏸️ إيقاف الحساب", callback_data=f"toggle_acc_{index}")],
         [InlineKeyboardButton(toggle_publish_text, callback_data=f"toggle_publish_{index}")],
         [InlineKeyboardButton("📊 حالة الحساب", callback_data=f"status_{index}")],
-        [InlineKeyboardButton("👥 جلب المجموعات", callback_data=f"getgroups_{index}")],
         [InlineKeyboardButton("📤 نشر الآن", callback_data=f"publishnow_{index}")],
         [InlineKeyboardButton("🗑️ حذف الحساب", callback_data=f"delacc_{index}")],
         [InlineKeyboardButton("⬅️ رجوع", callback_data="manage_accounts")]
@@ -179,7 +197,7 @@ def publish_settings_keyboard():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("✍️ الرسالة 1", callback_data="edit_msg_0"), InlineKeyboardButton("✍️ الرسالة 2", callback_data="edit_msg_1")],
         [InlineKeyboardButton("✍️ الرسالة 3", callback_data="edit_msg_2"), InlineKeyboardButton("✍️ الرسالة 4", callback_data="edit_msg_3")],
-        [InlineKeyboardButton("🔘 أزرار الرسائل", callback_data="edit_all_buttons")],
+        [InlineKeyboardButton("🔘 تعيين الأزرار", callback_data="edit_buttons")],
         [InlineKeyboardButton("⏱️ تعيين وقت النشر", callback_data="set_interval")],
         [InlineKeyboardButton("📋 عرض كل الرسائل", callback_data="show_all_msg")],
         [InlineKeyboardButton("⬅️ رجوع", callback_data="back_main")]
@@ -211,14 +229,37 @@ async def start(client, message: Message):
     db = load_db()
     if str(message.from_user.id) in db["banned_users"]:
         return await message.reply("❌ تم حظرك من استخدام البوت")
+
     get_user_data(message.from_user.id)
     db["stats"]["total_users"] = len(db["users"])
     save_db(db)
-    sub_status = "✅ مفعل" if await check_subscription(message.from_user.id) else "❌ غير مفعل"
+
+    # تحقق الاشتراك الإجباري
+    is_sub, channel = await check_force_sub(message.from_user.id)
+    if not is_sub:
+        return await message.reply(
+            f"**⚠️ يجب الاشتراك في القناة أولاً**\n\nالقناة: {channel}\n\nاشترك وبعدين اضغط تحقق",
+            reply_markup=force_sub_keyboard(channel)
+        )
+
+    has_sub, _ = await check_subscription(message.from_user.id)
+    sub_status = "✅ مفعل" if has_sub else "❌ غير مفعل"
     await message.reply(
         f"**أهلا بيك في بوت النشر المتطور** 🔥\n\n**الاشتراك:** {sub_status}\n**الحسابات:** {len(db['accounts'].get(str(message.from_user.id), []))}/{MAX_ACCOUNTS}",
         reply_markup=main_keyboard(message.from_user.id)
     )
+
+@bot.on_callback_query(filters.regex("check_force_sub"))
+async def check_force_sub_callback(client, callback: CallbackQuery):
+    is_sub, channel = await check_force_sub(callback.from_user.id)
+    if is_sub:
+        await callback.answer("✅ تم التحقق من الاشتراك", show_alert=True)
+        await callback.message.edit(
+            "**القائمة الرئيسية**",
+            reply_markup=main_keyboard(callback.from_user.id)
+        )
+    else:
+        await callback.answer("❌ لسه مش مشترك في القناة", show_alert=True)
 
 @bot.on_callback_query(filters.regex("features"))
 async def features_menu(client, callback: CallbackQuery):
@@ -229,28 +270,26 @@ async def features_menu(client, callback: CallbackQuery):
 - إضافة لحد {MAX_ACCOUNTS} حساب تيليجرام
 - تشغيل/إيقاف كل حساب منفصل
 - تبديل الحساب النشط للنشر بضغطة
-- حالة الحساب: شغال/متوقف/فلود + عداد
+- جلب المجموعات تلقائي
 
 **2. النشر الذكي**
 - 4 رسايل مختلفة بترتيب تلقائي
+- 4 أزرار فقط لكل الرسايل
 - يحفظ التنسيق كامل: عريض، مائل، كود، اقتباس
-- يحفظ ايموجي بريميوم تلقائي من غير ID
-- 4 أزرار مخصصة لكل رسالة
-- تظبيط وقت النشر بالدقايق: كل 1د/5د/10د...
+- يحفظ ايموجي بريميوم تلقائي
+- تظبيط وقت النشر بالدقايق
 
 **3. الرد التلقائي**
 - رد على المنشن @username
 - رد على الريبلاي
-- تفعيل/تعطيل الترحيب والرد
 - رسالة ترحيب + رسالة رد مخصصة
 
 **4. الحماية من البان**
 - 3 مستويات Anti-Flood: خفيف/متوسط/قوي
 - معالجة FloodWait تلقائية
 - لو الحساب بلع فلود يوقف ويرجع يشتغل لوحده
-- تأخير عشوائي بين الرسايل
 
-**⚡شغال علي افضا سيرفر بدون توقف**
+**⚡ شغال علي اقوي سيرفر بدون توقف**
 """
     await callback.message.edit(text, reply_markup=InlineKeyboardMarkup([
         [InlineKeyboardButton("📦 Source", url="https://t.me/vip6705")],
@@ -258,6 +297,9 @@ async def features_menu(client, callback: CallbackQuery):
         [InlineKeyboardButton("👨‍💻 Programmer", url="https://t.me/Devazf")],
         [InlineKeyboardButton("⬅️ رجوع", callback_data="back_main")]
     ]))
+
+# باقي الدوال زي ما هي من الكود اللي فوق...
+# هنكمل من اول admin_panel
 
 @bot.on_callback_query(filters.regex("admin_panel"))
 async def admin_panel(client, callback: CallbackQuery):
@@ -313,8 +355,14 @@ async def admin_payments(client, callback: CallbackQuery):
 
 @bot.on_callback_query(filters.regex("manage_accounts"))
 async def manage_accounts(client, callback: CallbackQuery):
-    if not await check_subscription(callback.from_user.id):
-        return await callback.answer("فعّل الاشتراك أولاً ❌", show_alert=True)
+    has_sub, reason = await check_subscription(callback.from_user.id)
+    if not has_sub:
+        if reason == "banned":
+            return await callback.answer("❌ تم حظرك", show_alert=True)
+        elif reason.startswith("@"):
+            return await callback.answer(f"اشترك في القناة أولاً: {reason}", show_alert=True)
+        else:
+            return await callback.answer("فعّل الاشتراك أولاً ❌", show_alert=True)
     await callback.message.edit("**👤 إدارة الحسابات**\n⭐ = الحساب النشط للنشر", reply_markup=accounts_keyboard(callback.from_user.id))
 
 @bot.on_callback_query(filters.regex("add_account"))
@@ -443,12 +491,13 @@ async def auto_publish_loop(user_id, acc_index):
                 await asyncio.sleep(10)
                 continue
             ub = userbots[user_id][acc_index]["client"]
+            buttons_data = user_data["publish_buttons"]
+            markup = InlineKeyboardMarkup([[InlineKeyboardButton(text, callback_data="none")] for text in buttons_data if text])
+
             for msg_index in range(4):
                 if not userbots[user_id][acc_index].get("publishing"):
                     break
                 entities_data = load_message_entities(user_id, msg_index)
-                buttons_data = user_data["publish_buttons"][msg_index]
-                markup = InlineKeyboardMarkup([[InlineKeyboardButton(text, callback_data="none")] for text in buttons_data if text])
                 for group in acc["groups"]:
                     try:
                         if entities_data and entities_data["text"]:
@@ -486,7 +535,8 @@ async def start_userbot(user_id, acc_index):
 
     @ub.on_message(filters.mentioned | filters.reply)
     async def auto_reply_handler(client, message: Message):
-        if not await check_subscription(int(user_id)):
+        has_sub, _ = await check_subscription(int(user_id))
+        if not has_sub:
             return
         if not user_data["reply_enabled"]:
             return
@@ -501,7 +551,7 @@ async def start_userbot(user_id, acc_index):
         delay = {1: 1, 2: 3, 3: 6}[level]
         await asyncio.sleep(random.uniform(delay, delay + 2))
         reply_entities = load_message_entities(user_id, "reply")
-        buttons_data = user_data["publish_buttons"][0]
+        buttons_data = user_data["publish_buttons"]
         markup = InlineKeyboardMarkup([[InlineKeyboardButton(text, callback_data="none")] for text in buttons_data if text])
         try:
             if reply_entities and reply_entities["text"]:
@@ -520,28 +570,19 @@ async def start_userbot(user_id, acc_index):
             pass
 
     await ub.start()
+    # جلب المجموعات تلقائي
+    groups = []
+    async for dialog in ub.get_dialogs():
+        if dialog.chat.type in ["group", "supergroup"]:
+            groups.append({"id": dialog.chat.id, "title": dialog.chat.title})
+    db["accounts"][user_id][acc_index]["groups"] = groups
+    save_db(db)
+
     if user_id not in userbots:
         userbots[user_id] = {}
     userbots[user_id][acc_index] = {"client": ub, "flood_until": 0, "publishing": False}
     db["accounts"][user_id][acc_index]["active"] = True
     save_db(db)
-
-@bot.on_callback_query(filters.regex(r"getgroups_(\d+)"))
-async def get_groups(client, callback):
-    index = int(callback.data.split("_")[1])
-    user_id = str(callback.from_user.id)
-    if user_id not in userbots or index not in userbots[user_id]:
-        return await callback.answer("شغل الحساب أولاً ❌", show_alert=True)
-    ub = userbots[user_id][index]["client"]
-    groups = []
-    async for dialog in ub.get_dialogs():
-        if dialog.chat.type in ["group", "supergroup"]:
-            groups.append({"id": dialog.chat.id, "title": dialog.chat.title})
-    db = load_db()
-    db["accounts"][user_id][index]["groups"] = groups
-    save_db(db)
-    text = "**المجموعات:**\n" + "\n".join([f"• {g['title']}" for g in groups]) if groups else "لا توجد مجموعات"
-    await callback.message.edit(text, reply_markup=account_control_keyboard(index, callback.from_user.id))
 
 @bot.on_callback_query(filters.regex(r"publishnow_(\d+)"))
 async def publish_now(client, callback):
@@ -561,7 +602,7 @@ async def publish_now(client, callback):
         return await callback.answer(f"الحساب في فلود. متبقي {remaining}ث ❌", show_alert=True)
     sent = 0
     entities_data = load_message_entities(user_id, 0)
-    buttons_data = user_data["publish_buttons"][0]
+    buttons_data = user_data["publish_buttons"]
     markup = InlineKeyboardMarkup([[InlineKeyboardButton(text, callback_data="none")] for text in buttons_data if text])
     for group in acc["groups"]:
         try:
@@ -602,7 +643,7 @@ async def delete_account(client, callback):
 
 @bot.on_callback_query(filters.regex("publish_settings"))
 async def publish_settings(client, callback):
-    await callback.message.edit("**📢 إعدادات النشر**\n\n4 رسايل + 4 أزرار لكل رسالة + توقيت", reply_markup=publish_settings_keyboard())
+    await callback.message.edit("**📢 إعدادات النشر**\n\n4 رسايل + 4 أزرار + توقيت", reply_markup=publish_settings_keyboard())
 
 @bot.on_callback_query(filters.regex(r"edit_msg_(\d)"))
 async def edit_msg_start(client, callback):
@@ -612,12 +653,12 @@ async def edit_msg_start(client, callback):
     save_db(db)
     await callback.message.edit(f"**أرسل الرسالة رقم {msg_index + 1}:**\n\nابعت أي رسالة فيها ايموجي بريميوم أو تنسيق وهيتحفظ تلقائي\n\nلإلغاء: /cancel")
 
-@bot.on_callback_query(filters.regex("edit_all_buttons"))
-async def edit_all_buttons_start(client, callback):
+@bot.on_callback_query(filters.regex("edit_buttons"))
+async def edit_buttons_start(client, callback):
     db = load_db()
-    db["waiting_for"][str(callback.from_user.id)] = "edit_all_buttons"
+    db["waiting_for"][str(callback.from_user.id)] = "edit_buttons"
     save_db(db)
-    await callback.message.edit("**أرسل أزرار الـ4 رسايل:**\n\nكل سطرين = رسالة واحدة\nمثال:\nزر1-1\nزر1-2\nزر2-1\nزر2-2\nزر3-1\nزر3-2\nزر4-1\nزر4-2\n\nلإلغاء: /cancel")
+    await callback.message.edit("**أرسل الـ4 أزرار:**\n\nكل سطر = زر واحد\nمثال:\nزر1\nزر2\nزر3\nزر4\n\nلإلغاء: /cancel")
 
 @bot.on_callback_query(filters.regex("set_interval"))
 async def set_interval_start(client, callback):
@@ -630,10 +671,10 @@ async def set_interval_start(client, callback):
 async def show_all_msg(client, callback):
     user_data = get_user_data(callback.from_user.id)
     await callback.message.delete()
+    buttons_data = user_data["publish_buttons"]
+    markup = InlineKeyboardMarkup([[InlineKeyboardButton(text, callback_data="none")] for text in buttons_data if text])
     for i in range(4):
         entities_data = load_message_entities(callback.from_user.id, i)
-        buttons_data = user_data["publish_buttons"][i]
-        markup = InlineKeyboardMarkup([[InlineKeyboardButton(text, callback_data="none")] for text in buttons_data if text])
         text = f"**📝 الرسالة {i+1}**\n⏱️ كل {user_data['publish_interval']} دقيقة"
         if entities_data and entities_data["text"]:
             await bot.send_message(callback.from_user.id, f"{text}\n\n{entities_data['text']}", entities=entities_data["entities"], reply_markup=markup)
@@ -801,18 +842,17 @@ async def handle_input(client, message: Message):
         save_db(db)
         await message.reply(f"✅ تم حفظ الرسالة {msg_index + 1} مع التنسيق والايموجي البريميوم تلقائي", reply_markup=publish_settings_keyboard())
 
-    elif wait_for == "edit_all_buttons":
+    elif wait_for == "edit_buttons":
         lines = message.text.split("\n")
-        buttons = [[], [], [], []]
-        for i in range(min(8, len(lines))):
-            buttons[i // 2].append(lines[i])
-        for i in range(4):
-            while len(buttons[i]) < 2:
-                buttons[i].append("")
+        buttons = []
+        for i in range(min(4, len(lines))):
+            buttons.append(lines[i])
+        while len(buttons) < 4:
+            buttons.append(f"زر{len(buttons)+1}")
         db["users"][user_id]["publish_buttons"] = buttons
         db["waiting_for"].pop(user_id, None)
         save_db(db)
-        await message.reply("✅ تم حفظ الأزرار", reply_markup=publish_settings_keyboard())
+        await message.reply("✅ تم حفظ الـ4 أزرار", reply_markup=publish_settings_keyboard())
 
     elif wait_for == "set_interval":
         try:
@@ -883,7 +923,6 @@ async def handle_input(client, message: Message):
         else:
             await message.reply("المستخدم أدمن بالفعل")
 
-    # استقبال طلب الدفع - سكرين شوت + هاش
     elif db["pending_payments"].get(user_id, {}).get("step") == "waiting_screenshot":
         if message.photo:
             db["pending_payments"][user_id] = {"step": "waiting_hash", "photo_id": message.photo.file_id}
