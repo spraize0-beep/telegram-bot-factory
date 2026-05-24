@@ -298,7 +298,31 @@ async def get_user_client(uid):
         return client
     except:
         return None
-        
+
+@bot.on(events.CallbackQuery(data=b"msg1"))
+async def handle_msg1(event):
+    await event.answer("رسالة 1")
+    # حط هنا الكود اللي عايزه يتنفذ لما يدوس msg1
+    await event.edit("تم اختيار رسالة 1", buttons=back_btn)
+
+@bot.on(events.CallbackQuery(data=b"msg2"))
+async def handle_msg2(event):
+    await event.answer("رسالة 2")
+    # كود msg2
+    await event.edit("تم اختيار رسالة 2", buttons=back_btn)
+
+@bot.on(events.CallbackQuery(data=b"msg3"))
+async def handle_msg3(event):
+    await event.answer("رسالة 3")
+    # كود msg3
+    await event.edit("تم اختيار رسالة 3", buttons=back_btn)
+
+@bot.on(events.CallbackQuery(data=b"msg4"))
+async def handle_msg4(event):
+    await event.answer("رسالة 4")
+    # كود msg4
+    await event.edit("تم اختيار رسالة 4", buttons=back_btn)
+
 async def log_error(uid, error_text):
     try:
         await bot.send_message(uid, f"⚠️ **تشخيص:**\n\n{error_text}")
