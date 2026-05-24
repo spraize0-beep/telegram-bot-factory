@@ -596,8 +596,9 @@ async def callback(event):
 
     elif data == 'msg4': # ← وحط ده تحته على طول
         waiting_for[uid] = 'msg4'
-        await safe_edit(event, "📝 **ابعت الرسالة الرابعة:**\n\nدي اخر رسالة في الدورة\nالبوت هيبدل بين الرسايل 1-4 تلقائي", buttons=[[Button.inline("🔙 رجوع", b"pub_settings")
-
+        await safe_edit(event, "📝 **ابعت الرسالة الرابعة:**\n\nدي اخر رسالة في الدورة\nالبوت هيبدل بين الرسايل 1-4 تلقائي", buttons=[[Button.inline("🔙 رجوع", b"pub_settings")]])
+        return
+    
     elif data == 'pub_interval':
         waiting_for[uid] = 'pub_interval'
         await safe_edit(event, "⏱️ **ابعت الوقت بين كل دورة نشر بالدقايق:**\n\nمثال: 5\nيعني يبعت لكل الجروبات وبعدين يستنى 5 دقايق ويعيد\n\nاقل حاجة: 1 دقيقة", buttons=[[Button.inline("🔙 رجوع", b"pub_settings")]])
