@@ -273,7 +273,9 @@ def admin_menu():
         [Button.inline("👥 المستخدمين", b"users"), Button.inline("📊 احصائيات", b"admin_stats")],
         [Button.inline("📢 اذاعة", b"broadcast")],
         [Button.inline("🔙 رجوع", b"back_main")]
-    ]
+       ]
+           ]  # <-- السطر ده كان ناقص
+
 
 async def get_user_client(uid):
     acc = get_account(uid)
