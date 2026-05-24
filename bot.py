@@ -337,25 +337,23 @@ async def start(event):
             [Button.inline("✨ المميزات", b"features")],
             [Button.inline("🤖 شراء بوت مماثل", b"buy_bot")],
             [Button.url("👨‍💻 المبرمج", DEVELOPER_LINK)]
-        ]
-        welcome_text = """
-<b>👋 أهلاً بيك في بوت النشر التلقائي</b>
+    ]
+    welcome_text = """<b>👋 أهلاً بيك في بوت النشر التلقائي</b>
 
-🚀 <b>نشر تلقائي في الجروبات</b>
-🤖 <b>رد تلقائي ذكي</b>
-🛡️ <b>حماية متقدمة</b>
+🚀 <b>نشر تلقائي في المجموعات آمن جدا</b>
+🤖 <b>رد تلقائي ذكي متخطي الباند نهائيا</b>
+🛡️ <b>حماية متقدمة عالية جدا ضد التجميد والفلود</b>
 
 ⚠️ <i>البوت باشتراك مدفوع</i>
-💬 @aabdulrahmaan .
+💬 Devloper : @aabdulrahmaan .
 """
-
-await bot.send_file(
-    event.chat_id,
-    file='welcome.jpg',
-    caption=welcome_text,
-    buttons=btns,
-    parse_mode='html'
-)
+    await bot.send_file(
+        event.chat_id,
+        file='welcome.jpg',
+        caption=welcome_text,
+        buttons=btns,
+        parse_mode='html'
+    )
     return
 
     # 3. لو مشترك/مطور - هنا بتيجي الزراير
