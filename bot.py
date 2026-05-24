@@ -1138,7 +1138,7 @@ async def handle_messages(event):
 
     elif action == 'msg3':
          entities = extract_entities_from_message(event.message)
-        if event.sticker:
+         if event.sticker:
             user['messages'][2] = {'text': '', 'entities': [], 'file_id': event.sticker.id, 'type': 'sticker'}
             await event.reply(f"✅ **تم حفظ الملصق كرسالة 3**")
         else:
