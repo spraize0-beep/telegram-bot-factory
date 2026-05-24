@@ -324,21 +324,21 @@ async def start(event):
             await bot(GetParticipantRequest(channel, uid))
         except:
             btns = [
-                [Button.url(f"📢 اشترك هنا اولا", f"https://t.me/{channel}")],
+                [Button.url(f"🔔 اشترك منا اولا", f"https://t.me/{channel}")],
                 [Button.inline("✅ تحققت", b"check_sub")]
             ]
-            await event.reply("🔒 **اشترك في القناة اولا:**", buttons=btns)
+            await event.reply("🔒 اشترك في القناة اولا", buttons=btns)
             return
 
-btns = []
-if not is_subscribed(uid):
-    btns = [
-        [Button.inline("🔑 تفعيل كود", b"activate")],
-        [Button.inline("✨ المميزات", b"features")],
-        [Button.inline("🤖 شراء بوت مماثل", b"buy_bot")],
-        [Button.url("👨‍💻 المبرمج", DEVELOPER_LINK)]
-    ]
-
+    btns = []
+    if not is_subscribed(uid):
+        btns = [
+            [Button.inline("🔑 تفعيل كود", b"activate")],
+            [Button.inline("✨ المميزات", b"features")],
+            [Button.inline("🤖 شراء بوت مماثل", b"buy_bot")],
+            [Button.url("👨‍💻 المبرمج", DEVELOPER_LINK)]
+        ]
+    
 welcome_text = """<b>👋 أهلاً بيك في بوت النشر التلقائي</b>
 
 🚀 <b>نشر تلقائي في المجموعات آمن جدا</b>
