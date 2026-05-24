@@ -331,14 +331,17 @@ async def start(event):
             return
 
     # 2. لو مش مشترك في البوت
-    if not is_subscribed(uid):
-        btns = [
-            [Button.inline("🔑 تفعيل كود", b"activate")],
-            [Button.inline("✨ المميزات", b"features")],
-            [Button.inline("🤖 شراء بوت مماثل", b"buy_bot")],
-            [Button.url("👨‍💻 المبرمج", DEVELOPER_LINK)]
+btns = []  # عرفها فاضية الأول
+
+if not is_subscribed(uid):
+    btns = [
+        [Button.inline("🔑 تفعيل كود", b"activate")],
+        [Button.inline("✨ المميزات", b"features")],
+        [Button.inline("🤖 شراء بوت مماثل", b"buy_bot")],
+        [Button.url("👨‍💻 المبرمج", DEVELOPER_LINK)]
     ]
-    welcome_text = """<b>👋 أهلاً بيك في بوت النشر التلقائي</b>
+
+welcome_text = """<b>👋 أهلاً بيك في بوت النشر التلقائي</b>
 
 🚀 <b>نشر تلقائي في المجموعات آمن جدا</b>
 🤖 <b>رد تلقائي ذكي متخطي الباند نهائيا</b>
@@ -347,14 +350,14 @@ async def start(event):
 ⚠️ <i>البوت باشتراك مدفوع</i>
 💬 Devloper : @aabdulrahmaan .
 """
-    await bot.send_file(
-        event.chat_id,
-        file='welcome.jpg',
-        caption=welcome_text,
-        buttons=btns,
-        parse_mode='html'
-    )
-    return
+await bot.send_file(
+    event.chat_id,
+    file='welcome.jpg',
+    caption=welcome_text,
+    buttons=btns,
+    parse_mode='html'
+)
+return
 
     # 3. لو مشترك/مطور - هنا بتيجي الزراير
     days = (datetime.fromisoformat(user['sub_end']) - datetime.now()).days if user.get('sub_end') else 9999
