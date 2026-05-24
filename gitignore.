@@ -1,6 +1,5 @@
-sessions/
-entities/
-db.json
+*.session
+*.session-journal
+database.json
 __pycache__/
 *.pyc
-.env
