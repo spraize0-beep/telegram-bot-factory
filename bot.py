@@ -237,14 +237,26 @@ def pub_settings_menu(uid):
     stealth = STEALTH_MODES[user['stealth_mode']]['name']
     auto_reply = "✅" if user['auto_reply'] else "❌"
 
-    msg1 = user['messages'][0]
-    msg2 = user['messages'][1]
-    msg3 = user['messages'][2]
-    msg4 = user['messages'][3]
-    msg1_status = "✅ ملصق" if msg1['type'] == 'sticker' else "✅ نص" if msg1['text'] else "❌"
-    msg2_status = "✅ ملصق" if msg2['type'] == 'sticker' else "✅ نص" if msg2['text'] else "❌"
-    msg3_status = "✅ ملصق" if msg3['type'] == 'sticker' else "✅ نص" if msg3['text'] else "❌"
-    msg4_status = "✅ ملصق" if msg4['type'] == 'sticker' else "✅ نص" if msg4['text'] else "❌"
+messages = user.get('messages', [])
+
+def get_msg_status(msg):
+    if not msg:
+        return "❌"
+    if msg.get('type') == 'sticker':
+        return "✅ ملصق"
+    if msg.get('text'):
+        return "✅ نص"
+    return "❌"
+
+msg1 = messages[0] if len(messages) > 0 else None
+msg2 = messages[1] if len(messages) > 1 else None
+msg3 = messages[2] if len(messages) > 2 else None
+msg4 = messages[3] if len(messages) > 3 else None
+
+msg1_status = get_msg_status(msg1)
+msg2_status = get_msg_status(msg2)
+msg3_status = get_msg_status(msg3)
+msg4_status = get_msg_status(msg4)
 
     btns = [
     [Button.inline(f"📱 {acc['name']} | {status}", b"accounts_menu")],
