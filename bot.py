@@ -1328,7 +1328,7 @@ async def publish_loop(uid):
                 save_db()
                 return
             else:
-            await asyncio.sleep(user['publish_interval'] * 60)
+                await asyncio.sleep(user['publish_interval'] * 60)
 
     except asyncio.CancelledError:
         await log_error(uid, '⛔ تم ايقاف النشر')
