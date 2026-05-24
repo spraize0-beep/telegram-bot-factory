@@ -1141,26 +1141,26 @@ async def handle_messages(event):
          if event.sticker:
             user['messages'][2] = {'text': '', 'entities': [], 'file_id': event.sticker.id, 'type': 'sticker'}
             await event.reply(f"✅ **تم حفظ الملصق كرسالة 3**")
-        else:
+         else:
             user['messages'][2] = {'text': text, 'entities': entities, 'file_id': None, 'type': 'text'}
             await event.reply(f"✅ **تم حفظ الرسالة 3**")
 
-        save_db()
-        del waiting_for[uid]
-        await start(event)
+         save_db()
+         del waiting_for[uid]
+         await start(event)
 
     elif action == 'msg4':
-        entities = extract_entities_from_message(event.message)
-        if event.sticker:
+         entities = extract_entities_from_message(event.message)
+         if event.sticker:
             user['messages'][3] = {'text': '', 'entities': [], 'file_id': event.sticker.id, 'type': 'sticker'}
             await event.reply(f"✅ **تم حفظ الملصق كرسالة 4**")
-        else:
+         else:
             user['messages'][3] = {'text': text, 'entities': entities, 'file_id': None, 'type': 'text'}
             await event.reply(f"✅ **تم حفظ الرسالة 4**")
 
-        save_db()
-        del waiting_for[uid]
-        await start(event)
+         save_db()
+         del waiting_for[uid]
+         await start(event)
     
     elif action == 'pub_interval':
         try:
