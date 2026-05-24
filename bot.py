@@ -198,6 +198,7 @@ def main_menu(uid):
         btns.insert(-1, [Button.inline("👑 لوحة المبرمج", b"admin")])
     return btns
 
+
 def accounts_menu(uid):
     user = get_user_data(uid)
     accounts = user['accounts']
@@ -222,6 +223,7 @@ def account_details_menu(uid, acc_id):
 
     btns = [
         [Button.inline(f"{status}", f"toggle_acc_{acc_id}".encode())],
+        [Button.inline("✏️ تغيير الاسم", f"rename_acc_{acc_id}".encode())],
         [Button.inline("👥 الجروبات", f"groups_acc_{acc_id}".encode())],
         [Button.inline("💾 نسخ السيشن", f"copy_session_{acc_id}".encode())],
         [Button.inline("🗑️ حذف الحساب", f"delete_acc_{acc_id}".encode())],
@@ -249,7 +251,7 @@ def pub_settings_menu(uid):
     msg2_status = "✅ ملصق" if msg2['type'] == 'sticker' else "✅ نص" if msg2['text'] else "❌"
     msg3_status = "✅ ملصق" if msg3['type'] == 'sticker' else "✅ نص" if msg3['text'] else "❌"
     msg4_status = "✅ ملصق" if msg4['type'] == 'sticker' else "✅ نص" if msg4['text'] else "❌"
-    
+
     btns = [
         
     [Button.inline(f"📱 {acc['name']} | {status}", b"accounts_menu")],
@@ -280,7 +282,6 @@ def admin_menu():
         [Button.inline("🔙 رجوع", b"back_main")]
        ]
            ]  # <-- السطر ده كان ناقص
-
 
 async def get_user_client(uid):
     acc = get_account(uid)
@@ -334,10 +335,10 @@ async def start(event):
             await bot(GetParticipantRequest(channel, uid))
         except:
             btns = [
-                [Button.url(f"📢 اشترك هنا", f"https://t.me/{channel}")],
+                [Button.url(f"📢 اشترك هنا اولا", f"https://t.me/{channel}")],
                 [Button.inline("✅ تحققت", b"check_sub")]
             ]
-            await event.reply("🔒 **اشترك في القناة الاول:**", buttons=btns)
+            await event.reply("🔒 **اشترك في القناة اولا:**", buttons=btns)
             return
 
     # 2. لو مش مشترك في البوت
@@ -366,15 +367,6 @@ async def start(event):
     text += "اختر من القائمة:"
     await event.reply(text, buttons=main_menu(uid))
 
-@bot.on(events.NewMessage(pattern='/admin'))
-async def admin_command(event):
-    uid = event.sender_id
-    
-    # لو مش انت، اعمل نفسك ميت
-    if uid != ADMIN_ID:
-        return
-    
-    await event.reply("👑 **لوحة المبرمج**", buttons=admin_menu())
 
 @bot.on(events.CallbackQuery)
 async def callback(event):
@@ -398,7 +390,7 @@ async def callback(event):
         
         text += f"1️⃣ حساب واحد برقم الهاتف\n"
         text += "2️⃣ النشر في الجروبات فقط\n"
-        text += "3️⃣ يدعم 4 رسايل نشر - نص بـ ميزة بريميوم\n"
+        text += "3️⃣ رسالتين نشر - نص بـ ميزة بريميوم\n"
         text += "4️⃣ دعم الايموجي البريميوم في النص\n"
         text += "5️⃣ حذف تلقائي للجروب لو اتحظرت منه\n"
         text += "6️⃣ تحديد الوقت بالدقايق بين كل دورة\n"
@@ -441,6 +433,18 @@ async def callback(event):
         await safe_edit(event, "📱 **ابعت رقم الحساب:**\n\nمثال: +201234567890\n\n**البوت هيسجل دخول مباشر - الكود هيوصل على تيليجرام الرقم**", buttons=[[Button.inline("🔙 رجوع", b"back_main")]])
         return
 
+    elif data == 'accounts_menu':
+        accounts_count = len(user['accounts'])
+        text = f"📱 **ادارة الحسابات**\n\n"
+        text += f"العدد: {accounts_count}/{MAX_ACCOUNTS}\n\n"
+        if user['current_account']:
+            current_acc = get_account_defaults(user['accounts'][user['current_account']])
+            text += f"الحساب الحالي: **{current_acc['name']}**\n"
+            text += f"المرسلة: {current_acc['sent_count']}\n"
+            text += f"الجروبات: {len(current_acc['groups'])}\n\n"
+        text += "اختار حساب للتفاصيل او اضف جديد:"
+        await safe_edit(event, text, buttons=accounts_menu(uid))
+        return
 
     elif data.startswith('select_acc_'):
         acc_id = data.split('_')[2]
@@ -496,7 +500,7 @@ async def callback(event):
         waiting_for[uid] = f'rename_{acc_id}'
         await safe_edit(event, "✏️ **ابعت الاسم الجديد للحساب:**", buttons=[[Button.inline("🔙 رجوع", f"select_acc_{acc_id}".encode())]])
         return
-    
+
     elif data.startswith('delete_acc_'):
         acc_id = data.split('_')[2]
         if acc_id in user['accounts']:
@@ -612,7 +616,7 @@ async def callback(event):
         waiting_for[uid] = 'msg4'
         await safe_edit(event, "📝 **ابعت الرسالة الرابعة:**\n\nدي اخر رسالة في الدورة\nالبوت هيبدل بين الرسايل 1-4 تلقائي", buttons=[[Button.inline("🔙 رجوع", b"pub_settings")]])
         return
-    
+
     elif data == 'pub_interval':
         waiting_for[uid] = 'pub_interval'
         await safe_edit(event, "⏱️ **ابعت الوقت بين كل دورة نشر بالدقايق:**\n\nمثال: 5\nيعني يبعت لكل الجروبات وبعدين يستنى 5 دقايق ويعيد\n\nاقل حاجة: 1 دقيقة", buttons=[[Button.inline("🔙 رجوع", b"pub_settings")]])
@@ -750,7 +754,6 @@ async def callback(event):
 
     elif data == 'tips':
         text = f"💡 **نصائح الحماية من الحظر**\n\n"
-        
         text += "1️⃣ **استخدم وضع آمن جدا** 🛡️\n"
         text += "2️⃣ **النشر كل 5 دقايق او اكتر**\n"
         text += "3️⃣ **متزودش عن 10 جروب** للحساب\n"
@@ -780,7 +783,7 @@ async def callback(event):
         text += "🤖 رد تلقائي على المنشن والريبلاي\n"
         text += "👋 ترحيب تلقائي بالخاص\n"
         text += "📊 تحليل و احصائيات\n"
-        text += "♾️ اشتراك مدة سنه\n\n"
+        text += "♾️ اشتراك مدة 12 شهر\n\n"
         await safe_edit(event, text, buttons=[[Button.url("👨‍💻 المبرمج", DEVELOPER_LINK)], [Button.inline("🔙 رجوع", b"back_main")]])
         return
 
@@ -805,7 +808,7 @@ async def callback(event):
         await event.answer("✅ الكود اتنسخ في الرسالة", alert=True)
         await event.respond(f"🔑 **كود سنة 365 يوم:**\n\n```\n{code}\n```\n\nانسخ الكود وابعت للعميل")
         return
-    
+
     elif data == 'list_codes':
         if uid!= ADMIN_ID:
             return
@@ -958,7 +961,7 @@ async def handle_messages(event):
         count = 0
         for user_id in db['users'].keys():
             try:
-                await bot.send_message(int(user_id), f"📢 **اعلان من المطور**\n\n{msg_text}")
+                await bot.send_message(int(user_id), f"📢 **اعلان من الادارة**\n\n{msg_text}")
                 count += 1
             except:
                 pass
@@ -1057,7 +1060,7 @@ async def handle_messages(event):
             await event.reply(f"✅ **تم تغيير الاسم الى:** {new_name}")
             await callback(await event.respond(f'select_acc_{acc_id}'.encode()))
             return
-    
+
     elif action == 'add_group':
         group = text.strip()
         acc = get_account_defaults(acc)
@@ -1173,7 +1176,7 @@ async def handle_messages(event):
         save_db()
         del waiting_for[uid]
         await start(event)
-    
+
     elif action == 'pub_interval':
         try:
             interval = int(text.strip())
@@ -1198,14 +1201,13 @@ async def handle_messages(event):
         await start(event)
 
     elif action == 'welcome_msg':
-        # خزن النص + الـ entities عشان تحافظ على التنسيق والإيموجي البريميوم
-        user['welcome_msg'] = event.message.text or event.message
-        user['welcome_entities'] = extract_entities_from_message(event.message)
-
-    save_db()
-    del waiting_for[uid]
-    await event.reply(f"✅ **تم حفظ رسالة الترحيب**")
-    await start(event)
+        entities = extract_entities_from_message(event.message)
+        user['welcome_msg'] = text.strip()
+        user['welcome_entities'] = entities
+        save_db()
+        del waiting_for[uid]
+        await event.reply(f"✅ **تم حفظ رسالة الترحيب**")
+        await start(event)
 
 async def publish_loop(uid):
     user = get_user_data(uid)
@@ -1216,7 +1218,7 @@ async def publish_loop(uid):
     acc = get_account_defaults(acc)
     key = f"{uid}_{user['current_account']}"
 
-    client = TelegramClient(StringSession(acc['session']), API_ID, API_HASH, device_model="iPhone 17 Pro", system_version="iOS 17.5", app_version="10.9.2")
+    client = TelegramClient(StringSession(acc['session']), API_ID, API_HASH, device_model="iPhone 15 Pro", system_version="iOS 17.5", app_version="10.9.2")
 
     try:
         await client.connect()
@@ -1343,6 +1345,7 @@ async def publish_loop(uid):
                 return
             else:
                 await asyncio.sleep(user['publish_interval'] * 60)
+
 
     except asyncio.CancelledError:
         await log_error(uid, '⛔ تم ايقاف النشر')
