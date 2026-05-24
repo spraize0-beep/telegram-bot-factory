@@ -188,7 +188,7 @@ def main_menu(uid):
         [Button.inline("🛒 شراء بوت مماثل", b"buy_bot"), Button.url("👨‍💻 المبرمج", DEVELOPER_LINK)]
     ]
     if uid == ADMIN_ID:
-        btns.insert(-1, [Button.inline("👑 لوحة المبرمج", b"admin_panel")])
+        btns.insert(-1, [Button.inline("👑 لوحة المبرمج", b"admin_menu")])
     return btns
 
 
