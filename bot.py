@@ -188,7 +188,7 @@ def main_menu(uid):
         [Button.inline("🛒 شراء بوت مماثل", b"buy_bot"), Button.url("👨‍💻 المبرمج", DEVELOPER_LINK)]
     ]
     if uid == ADMIN_ID:
-        btns.insert(-1, [Button.inline("👑 لوحة المبرمج", b"admin")])
+        btns.insert(-1, [Button.inline("👑 لوحة المبرمج", b"admin_panel")])
     return btns
 
 
@@ -216,7 +216,6 @@ def account_details_menu(uid, acc_id):
 
     btns = [
         [Button.inline(f"{status}", f"toggle_acc_{acc_id}".encode())],
-        [Button.inline("✏️ تغيير الاسم", f"rename_acc_{acc_id}".encode())],
         [Button.inline("👥 الجروبات", f"groups_acc_{acc_id}".encode())],
         [Button.inline("💾 نسخ السيشن", f"copy_session_{acc_id}".encode())],
         [Button.inline("🗑️ حذف الحساب", f"delete_acc_{acc_id}".encode())],
@@ -477,12 +476,6 @@ async def callback(event):
         await safe_edit(event, f"📱 **{acc['name']}**\n\n📞 الرقم: `{acc['phone']}`\n👥 الجروبات: {len(acc['groups'])}\n📤 المرسلة: {acc['sent_count']}\nالحالة: {'🟢 يعمل' if acc['active'] else '🔴 متوقف'}\nتاريخ الاضافة: {acc['created_at'][:10]}\n\nاختار العملية:", buttons=account_details_menu(uid, acc_id))
         return
 
-    elif data.startswith('rename_acc_'):
-        acc_id = data.split('_')[2]
-        waiting_for[uid] = f'rename_{acc_id}'
-        await safe_edit(event, "✏️ **ابعت الاسم الجديد للحساب:**", buttons=[[Button.inline("🔙 رجوع", f"select_acc_{acc_id}".encode())]])
-        return
-
     elif data.startswith('delete_acc_'):
         acc_id = data.split('_')[2]
         if acc_id in user['accounts']:
@@ -506,14 +499,6 @@ async def callback(event):
             save_db()
             await event.answer("✅ تم حذف الحساب", alert=True)
         await safe_edit(event, f"📱 **ادارة الحسابات**\n\nالعدد: {len(user['accounts'])}/{MAX_ACCOUNTS}\n\nاختار حساب للتفاصيل او اضف جديد:", buttons=accounts_menu(uid))
-        return
-
-    elif data == 'pub_settings':
-        if not acc:
-            await event.answer("❌ حدد حساب من ادارة الحسابات الاول", alert=True)
-            await safe_edit(event, f"📱 **ادارة الحسابات**\n\nالعدد: {len(user['accounts'])}/{MAX_ACCOUNTS}\n\nاختار حساب للتفاصيل او اضف جديد:", buttons=accounts_menu(uid))
-            return
-        await safe_edit(event, "⚙️ **اعدادات النشر الاحترافية**", buttons=pub_settings_menu(uid))
         return
     
     elif data == 'fetch_groups':
@@ -1032,17 +1017,6 @@ async def handle_messages(event):
             await start(event)
         except Exception as e:
             await event.reply(f"❌ **كلمة المرور غلط**")
-
-    elif action.startswith('rename_'):
-        acc_id = action.split('_')[1]
-        new_name = text.strip()
-        if acc_id in user['accounts']:
-            user['accounts'][acc_id]['name'] = new_name
-            save_db()
-            del waiting_for[uid]
-            await event.reply(f"✅ **تم تغيير الاسم الى:** {new_name}")
-            await callback(await event.respond(f'select_acc_{acc_id}'.encode()))
-            return
 
     elif action == 'add_group':
         group = text.strip()
