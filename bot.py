@@ -182,7 +182,6 @@ def build_entities(saved_entities):
 def main_menu(uid):
     btns = [
         [Button.inline("📱 اضافة حساب", b"add_account")],
-        [Button.inline("📱 ادارة الحسابات", b"accounts_menu")],
         [Button.inline("⚙️ اعدادات النشر", b"pub_settings"), Button.inline("📊 تحليل النشر", b"analyze")],
         [Button.inline("🔄 تشغيل", b"start_pub"), Button.inline("⛔ ايقاف", b"stop_pub")],
         [Button.inline("✨ مميزات البوت", b"features"), Button.inline("💡 نصائح الحماية", b"tips")],
@@ -239,18 +238,13 @@ def pub_settings_menu(uid):
 
     msg1 = user['messages'][0]
     msg2 = user['messages'][1]
-    msg3 = user['messages'][2]
-    msg4 = user['messages'][3]
     msg1_status = "✅ ملصق" if msg1['type'] == 'sticker' else "✅ نص" if msg1['text'] else "❌"
     msg2_status = "✅ ملصق" if msg2['type'] == 'sticker' else "✅ نص" if msg2['text'] else "❌"
-    msg3_status = "✅ ملصق" if msg3['type'] == 'sticker' else "✅ نص" if msg3['text'] else "❌"
-    msg4_status = "✅ ملصق" if msg4['type'] == 'sticker' else "✅ نص" if msg4['text'] else "❌"
 
     btns = [
         [Button.inline(f"📱 {acc['name']} | {status}", b"accounts_menu")],
         [Button.inline("🔄 جلب الجروبات", b"fetch_groups"), Button.inline("👥 الجروبات", b"manage_groups")],
         [Button.inline(f"📝 رسالة 1 {msg1_status}", b"msg1"), Button.inline(f"📝 رسالة 2 {msg2_status}", b"msg2")],
-        [Button.inline(f"📝 رسالة 3 {msg3_status}", b"msg3"), Button.inline(f"📝 رسالة 4 {msg4_status}", b"msg4")],
         [Button.inline(f"⏱️ النشر كل {user['publish_interval']} دقيقة", b"pub_interval")],
         [Button.inline(f"{flood_level} حماية التجميد", b"flood_level")],
         [Button.inline(f"{stealth} التخفي", b"stealth_mode")],
@@ -299,30 +293,6 @@ async def get_user_client(uid):
     except:
         return None
 
-@bot.on(events.CallbackQuery(data=b"msg1"))
-async def handle_msg1(event):
-    await event.answer("رسالة 1")
-    # حط هنا الكود اللي عايزه يتنفذ لما يدوس msg1
-    await event.edit("تم اختيار رسالة 1", buttons=back_btn)
-
-@bot.on(events.CallbackQuery(data=b"msg2"))
-async def handle_msg2(event):
-    await event.answer("رسالة 2")
-    # كود msg2
-    await event.edit("تم اختيار رسالة 2", buttons=back_btn)
-
-@bot.on(events.CallbackQuery(data=b"msg3"))
-async def handle_msg3(event):
-    await event.answer("رسالة 3")
-    # كود msg3
-    await event.edit("تم اختيار رسالة 3", buttons=back_btn)
-
-@bot.on(events.CallbackQuery(data=b"msg4"))
-async def handle_msg4(event):
-    await event.answer("رسالة 4")
-    # كود msg4
-    await event.edit("تم اختيار رسالة 4", buttons=back_btn)
-
 async def log_error(uid, error_text):
     try:
         await bot.send_message(uid, f"⚠️ **تشخيص:**\n\n{error_text}")
@@ -361,7 +331,7 @@ async def start(event):
             [Button.inline("🔑 تفعيل كود", b"activate")],
             [Button.inline("✨ المميزات", b"features")],
             [Button.inline("🤖 شراء بوت مماثل", b"buy_bot")],
-            [Button.url("👨‍💻 المبرمج", DEVELOPER_LINK)]
+            [Button.url("👨‍💻 المطور", DEVELOPER_LINK)]
         ]
 
         welcome_text = """<b>👋 أهلاً بيك في بوت النشر التلقائي</b>
@@ -386,11 +356,10 @@ async def start(event):
     sent = acc['sent_count'] if acc else 0
     accounts_count = len(user['accounts'])
 
-    text = f"🔥 **بوت النشر المتطور الاحترافي**\n\n"
-    text += f"📱 الحسابات: {accounts_count}/{MAX_ACCOUNTS}\n"
+    text = f"🔥 **اهلا بيك في بوت النشر المتطور الاحترافي**\n\n"
+    
     text += f"📤 الرسائل المرسلة: {sent}\n\n"
-    if acc:
-        text += f"👤 الحساب الحالي: {acc['name']}\n\n"
+    
     text += "اختر من القائمة:"
     await event.reply(text, buttons=main_menu(uid))
 
@@ -413,6 +382,7 @@ async def callback(event):
         text = f"✨ **مميزات البوت الكاملة**\n\n"
 
         text += "🔥 **النشر التلقائي:**\n"
+
         
         text += f"1️⃣ حساب واحد برقم الهاتف\n"
         text += "2️⃣ النشر في الجروبات فقط\n"
@@ -423,6 +393,7 @@ async def callback(event):
         text += "7️⃣ جلب الجروبات تلقائي من الحساب\n\n"
         
         text += "🛡️ **الحماية من الحظر:**\n"
+
         
         text += "1️⃣ 3 مستويات حماية فلود: خفيف/متوسط/قوي\n"
         text += "2️⃣ 3 اوضاع تخفي: سريع/متوازن/آمن جدا\n"
@@ -431,6 +402,7 @@ async def callback(event):
         text += "5️⃣ ايقاف تلقائي لو الحساب اتحظر\n"
         
         text += "🤖 **الرد التلقائي:**\n"
+
         
         text += "1️⃣ رد على المنشن والريبلاي في الجروبات\n"
         text += "2️⃣ يرد مرة واحدة بس على كل شخص\n"
@@ -633,16 +605,6 @@ async def callback(event):
         await safe_edit(event, "📝 **ابعت الرسالة التانية:**\n\nتقدر تبعت نص مع ايموجي بريميوم او ملصق\nالبوت هيبدل بينهم تلقائي", buttons=[[Button.inline("🔙 رجوع", b"pub_settings")]])
         return
 
-    elif data == 'msg3': 
-        waiting_for[uid] = 'msg3'
-        await safe_edit(event, "📝 **ابعت الرسالة التالتة:**\n\nتقدر تبعت نص مع ايموجي بريميوم او ملصق\nالبوت هيحفظه وينشره", buttons=[[Button.inline("🔙 رجوع", b"pub_settings")]])
-        return
-
-    elif data == 'msg4': 
-        waiting_for[uid] = 'msg4'
-        await safe_edit(event, "📝 **ابعت الرسالة الرابعة:**\n\nدي اخر رسالة في الدورة\nالبوت هيبدل بين الرسايل 1-4 تلقائي", buttons=[[Button.inline("🔙 رجوع", b"pub_settings")]])
-        return
-
     elif data == 'pub_interval':
         waiting_for[uid] = 'pub_interval'
         await safe_edit(event, "⏱️ **ابعت الوقت بين كل دورة نشر بالدقايق:**\n\nمثال: 5\nيعني يبعت لكل الجروبات وبعدين يستنى 5 دقايق ويعيد\n\nاقل حاجة: 1 دقيقة", buttons=[[Button.inline("🔙 رجوع", b"pub_settings")]])
@@ -789,7 +751,7 @@ async def callback(event):
         text = f"🛒 **شراء بوت مماثل**\n\n"
         text += f"💰 **السعر:** $25 **فقط\n"
         
-        text += "✅ **المميزات:**\n"
+        text += "✅ **المميزات**\n"
         
         text += f"🔑 حساب واحد برقم الهاتف\n"
         text += "📝 نشر تلقائي احترافي\n"
@@ -1158,30 +1120,6 @@ async def handle_messages(event):
         else:
             user['messages'][1] = {'text': text, 'entities': entities, 'file_id': None, 'type': 'text'}
             await event.reply(f'✅ **تم حفظ الرسالة 2**')
-        save_db()
-        del waiting_for[uid]
-        await start(event)
-
-    elif action == 'msg3':
-        entities = extract_entities_from_message(event.message)
-        if event.sticker:
-            user['messages'][2] = {'text': '', 'entities': [], 'file_id': event.sticker.id, 'type': 'sticker'}
-            await event.reply(f'✅ **تم حفظ الملصق كرسالة 3**')
-        else:
-            user['messages'][2] = {'text': text, 'entities': entities, 'file_id': None, 'type': 'text'}
-            await event.reply(f'✅ **تم حفظ الرسالة 3**')
-        save_db()
-        del waiting_for[uid]
-        await start(event)
-
-    elif action == 'msg4':
-        entities = extract_entities_from_message(event.message)
-        if event.sticker:
-            user['messages'][3] = {'text': '', 'entities': [], 'file_id': event.sticker.id, 'type': 'sticker'}
-            await event.reply(f'✅ **تم حفظ الملصق كرسالة 4**')
-        else:
-            user['messages'][3] = {'text': text, 'entities': entities, 'file_id': None, 'type': 'text'}
-            await event.reply(f'✅ **تم حفظ الرسالة 4**')
         save_db()
         del waiting_for[uid]
         await start(event)
