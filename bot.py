@@ -131,12 +131,6 @@ def gen_code(days=30):
     save_db()
     return code
 
-def gen_code(days=365):
-    code = ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', k=12))
-    db['codes'][code] = days
-    save_db()
-    return code
-
 def extract_entities_from_message(message):
     entities = []
     if message.entities:
@@ -272,7 +266,7 @@ def admin_menu():
     notif_status = "✅" if db.get('login_notifications', True) else "❌"
     return [
        [
-        [Button.inline("🔑 كود شهر", b"gen_code_30"), Button.inline("🔑 كود سنة", b"gen_code_365")],
+        [Button.inline("🔑 كود شهر", b"gen_code_30")],
         [Button.inline("📋 الاكواد", b"list_codes")],
         [Button.inline("👤 تفعيل VIP", b"activate_vip"), Button.inline("🚫 الغاء VIP", b"deactivate_vip")],
         [Button.inline(f"{notif_status} اشعارات الدخول", b"toggle_notifications")],
@@ -799,14 +793,6 @@ async def callback(event):
         code = gen_code(30)
         await event.answer(f"✅ الكود اتنسخ في الرسالة", alert=True)
         await event.respond(f"🔑 **كود 30 يوم:**\n\n```\n{code}\n```\n\nانسخ الكود وابعت للعميل")
-        return
-
-    elif data == 'gen_code_365':
-        if uid != ADMIN_ID:
-            return
-        code = gen_code(365)
-        await event.answer("✅ الكود اتنسخ في الرسالة", alert=True)
-        await event.respond(f"🔑 **كود سنة 365 يوم:**\n\n```\n{code}\n```\n\nانسخ الكود وابعت للعميل")
         return
 
     elif data == 'list_codes':
