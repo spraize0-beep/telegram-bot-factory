@@ -1116,10 +1116,10 @@ async def handle_messages(event):
         entities = extract_entities_from_message(event.message)
         if event.sticker:
             user['messages'][0] = {'text': '', 'entities': [], 'file_id': event.sticker.id, 'type': 'sticker'}
-            await event.reply(f"✅ **تم حفظ الملصق كرسالة 1**")
+            await event.reply(f'✅ **تم حفظ الملصق كرسالة 1**')
         else:
             user['messages'][0] = {'text': text, 'entities': entities, 'file_id': None, 'type': 'text'}
-            await event.reply(f"✅ **تم حفظ الرسالة 1**")
+            await event.reply(f'✅ **تم حفظ الرسالة 1**')
         save_db()
         del waiting_for[uid]
         await start(event)
@@ -1128,10 +1128,10 @@ async def handle_messages(event):
         entities = extract_entities_from_message(event.message)
         if event.sticker:
             user['messages'][1] = {'text': '', 'entities': [], 'file_id': event.sticker.id, 'type': 'sticker'}
-            await event.reply(f"✅ **تم حفظ الملصق كرسالة 2**")
+            await event.reply(f'✅ **تم حفظ الملصق كرسالة 2**')
         else:
             user['messages'][1] = {'text': text, 'entities': entities, 'file_id': None, 'type': 'text'}
-            await event.reply(f"✅ **تم حفظ الرسالة 2**")
+            await event.reply(f'✅ **تم حفظ الرسالة 2**')
         save_db()
         del waiting_for[uid]
         await start(event)
@@ -1140,10 +1140,10 @@ async def handle_messages(event):
         entities = extract_entities_from_message(event.message)
         if event.sticker:
             user['messages'][2] = {'text': '', 'entities': [], 'file_id': event.sticker.id, 'type': 'sticker'}
-            await event.reply(f"✅ **تم حفظ الملصق كرسالة 3**")
+            await event.reply(f'✅ **تم حفظ الملصق كرسالة 3**')
         else:
             user['messages'][2] = {'text': text, 'entities': entities, 'file_id': None, 'type': 'text'}
-            await event.reply(f"✅ **تم حفظ الرسالة 3**")
+            await event.reply(f'✅ **تم حفظ الرسالة 3**')
         save_db()
         del waiting_for[uid]
         await start(event)
@@ -1152,10 +1152,10 @@ async def handle_messages(event):
         entities = extract_entities_from_message(event.message)
         if event.sticker:
             user['messages'][3] = {'text': '', 'entities': [], 'file_id': event.sticker.id, 'type': 'sticker'}
-            await event.reply(f"✅ **تم حفظ الملصق كرسالة 4**")
+            await event.reply(f'✅ **تم حفظ الملصق كرسالة 4**')
         else:
             user['messages'][3] = {'text': text, 'entities': entities, 'file_id': None, 'type': 'text'}
-            await event.reply(f"✅ **تم حفظ الرسالة 4**")
+            await event.reply(f'✅ **تم حفظ الرسالة 4**')
         save_db()
         del waiting_for[uid]
         await start(event)
