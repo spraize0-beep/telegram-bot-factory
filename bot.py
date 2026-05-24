@@ -189,7 +189,7 @@ def main_menu(uid):
         [Button.inline("🛒 شراء بوت مماثل", b"buy_bot"), Button.url("👨‍💻 المبرمج", DEVELOPER_LINK)]
     ]
     if uid == ADMIN_ID:
-        btns.insert(-1, [Button.inline("👑 لوحة المبرمج", b"admin")])
+        btns.insert(-1, [Button.inline("👑 لوحة المبرمج", b"admin_menu")])
     return btns
 
 
@@ -247,7 +247,6 @@ def pub_settings_menu(uid):
     msg4_status = "✅ ملصق" if msg4['type'] == 'sticker' else "✅ نص" if msg4['text'] else "❌"
 
     btns = [
-        
     [Button.inline(f"📱 {acc['name']} | {status}", b"accounts_menu")],
     [Button.inline("🔄 جلب الجروبات", b"fetch_groups"), Button.inline("👥 الجروبات", b"manage_groups")],
     [Button.inline(f"📝 رسالة 1 {msg1_status}", b"msg1"), Button.inline(f"📝 رسالة 2 {msg2_status}", b"msg2")],
