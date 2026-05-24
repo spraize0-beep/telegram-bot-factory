@@ -131,6 +131,12 @@ def gen_code(days=30):
     save_db()
     return code
 
+def gen_code(days=365):
+    code = ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', k=12))
+    db['codes'][code] = days
+    save_db()
+    return code
+
 def extract_entities_from_message(message):
     entities = []
     if message.entities:
@@ -360,6 +366,15 @@ async def start(event):
     text += "اختر من القائمة:"
     await event.reply(text, buttons=main_menu(uid))
 
+@bot.on(events.NewMessage(pattern='/admin'))
+async def admin_command(event):
+    uid = event.sender_id
+    
+    # لو مش انت، اعمل نفسك ميت
+    if uid != ADMIN_ID:
+        return
+    
+    await event.reply("👑 **لوحة المبرمج**", buttons=admin_menu())
 
 @bot.on(events.CallbackQuery)
 async def callback(event):
