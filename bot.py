@@ -1328,7 +1328,6 @@ async def publish_loop(uid):
                 save_db()
                 return
             else:
-                #await log_error(uid, f'✅ تم النشر في {sent_count} جروب - فشل {failed_count} - بستنى {user["publish_interval"]} دقيقة')
             await asyncio.sleep(user['publish_interval'] * 60)
 
     except asyncio.CancelledError:
