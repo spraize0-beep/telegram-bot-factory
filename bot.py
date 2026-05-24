@@ -1143,8 +1143,7 @@ async def handle_messages(event):
             await event.reply(f"✅ **تم حفظ الملصق كرسالة 3**")
          else:
             user['messages'][2] = {'text': text, 'entities': entities, 'file_id': None, 'type': 'text'}
-            await event.reply(f"✅ **تم حفظ الرسالة 3**")
-
+            await event.reply(f"✅ **تم حفظ الرسالة 3**"
          save_db()
          del waiting_for[uid]
          await start(event)
@@ -1157,7 +1156,6 @@ async def handle_messages(event):
          else:
             user['messages'][3] = {'text': text, 'entities': entities, 'file_id': None, 'type': 'text'}
             await event.reply(f"✅ **تم حفظ الرسالة 4**")
-
          save_db()
          del waiting_for[uid]
          await start(event)
