@@ -121,7 +121,7 @@ def main_menu(user_id):
     ]
     if user_id in ADMIN_IDS:
         buttons.append([Button.inline("👑 لوحة الأدمن", b"admin_panel")])
-    buttons.append([Button.url("👨‍💻 المطور", f"https://t.me/{DEVELOPER}")])
+    buttons.append([Button.url("👨‍💻 المبرمج", f"https://t.me/{DEVELOPER}")])
     return buttons
 
 def clean_menu_buttons():
@@ -165,7 +165,7 @@ async def check_account(event):
             "كلم المطور عشان تشتري كود",
             buttons=[[Button.inline("🎟️ تفعيل كود", b"activate_vip")],
                     [Button.inline("💎 متجر VIP", b"vip_shop")],
-                    [Button.url("👨‍💻 المطور", f"https://t.me/{DEVELOPER}")]],
+                    [Button.url("👨‍💻 المبرمج", f"https://t.me/{DEVELOPER}")]],
             parse_mode='html'
         )
         return None
@@ -187,7 +187,7 @@ async def start(event):
 
     user = await event.get_sender()
     name_user = user.first_name
-    vip_status = "✅ VIP مفعل" if is_vip(event.sender_id) else "❌ غير مفعل"
+    vip_status = "VIP مفعل" if is_vip(event.sender_id) else "غير مفعل"
     points = get_points(event.sender_id)
     expire = get_vip_expire(event.sender_id)
     expire_text = f"\n<b>⏰ ينتهي:</b> {expire}" if expire else ""
@@ -195,7 +195,7 @@ async def start(event):
     welcome_text = (
         f'<b><tg-emoji emoji-id="5798482080421649554">🔒</tg-emoji> اهلا بك ‹ {name_user} › في بوت تنظيف الحساب <tg-emoji emoji-id="5796526727840669257">🎲</tg-emoji></b>\n\n'
         f'<b><tg-emoji emoji-id="5796499583647359561">📌</tg-emoji> حالة اشتراكك: {vip_status} <tg-emoji emoji-id="5798941981224737816">🚀</tg-emoji></b>{expire_text}\n'
-        f'<b><tg-emoji emoji-id="5798482080421649554">🔒</tg-emoji> نقاطك: {points} 💎 <tg-emoji emoji-id="5798941981224737816">🚀</tg-emoji></b>\n\n'
+        f'<b><tg-emoji emoji-id="5798482080421649554">🔒</tg-emoji> نقاطك: {points} <tg-emoji emoji-id="5798941981224737816">🚀</tg-emoji></b>\n\n'
         f'<b><tg-emoji emoji-id="5796499583647359561">📌</tg-emoji> ضيف حسابك وابدأ التنظيف بضغطة زر <tg-emoji emoji-id="5798941981224737816">🚀</tg-emoji></b>'
     )
 
