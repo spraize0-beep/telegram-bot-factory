@@ -190,7 +190,6 @@ async def start(event):
     welcome_text = (
         f'<b><tg-emoji emoji-id="5798482080421649554">🔒</tg-emoji> اهلا بك ‹ {name_user} › في بوت تنظيف الحساب <tg-emoji emoji-id="5796526727840669257">🎲</tg-emoji></b>\n\n'
         f'<b><tg-emoji emoji-id="5796499583647359561">📌</tg-emoji> حالة اشتراكك: {vip_status} <tg-emoji emoji-id="5798941981224737816">🚀</tg-emoji></b>{expire_text}\n'
-        f'<b><tg-emoji emoji-id="5798482080421649554">🔒</tg-emoji> نقاطك: {points} <tg-emoji emoji-id="5798941981224737816">🚀</tg-emoji></b>\n\n'
         f'<b><tg-emoji emoji-id="5796499583647359561">📌</tg-emoji> ضيف حسابك وابدأ التنظيف بضغطة زر <tg-emoji emoji-id="5798941981224737816">🚀</tg-emoji></b>'
     )
 
