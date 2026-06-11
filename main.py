@@ -12,12 +12,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-API_ID = int(os.getenv("API_ID"))
-API_HASH = os.getenv("API_HASH")
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-DEVELOPER = os.getenv("DEVELOPER", "username_dev")
-FORCE_CHANNEL = os.getenv("FORCE_CHANNEL", "channel_username")
-ADMIN_IDS = [int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x]
+API_ID = 39267730
+API_HASH = 'd19c32462e50c07e9c7930548fd68614'
+BOT_TOKEN = '8905916182:AAGdDGrkmA4emMHF9wopiBF23KBP69jpBNM'
+DEVELOPER = os.getenv("DEVELOPER", "Gramazef")
+FORCE_CHANNEL = os.getenv("FORCE_CHANNEL", "H9999f")
+ADMIN_IDS = [int(x) for x in os.getenv("ADMIN_IDS", "8214627750").split(",") if x]
 
 bot = TelegramClient('bot', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 user_sessions = {}
@@ -116,8 +116,7 @@ def main_menu(user_id):
         [Button.inline("➕ إضافة حساب", b"add_account")],
         [Button.inline("🧹 قائمة التنظيف", b"clean_menu")],
         [Button.inline("🎟️ تفعيل الاشتراك", b"activate_vip")],
-        [Button.inline("⭐ المميزات", b"features")],
-        [Button.inline("💎 متجر VIP", b"vip_shop")]
+        [Button.inline("⭐ المميزات", b"features")]
     ]
     if user_id in ADMIN_IDS:
         buttons.append([Button.inline("👑 لوحة الأدمن", b"admin_panel")])
@@ -140,8 +139,6 @@ def admin_panel_buttons():
         [Button.inline("➕ توليد كود", b"gen_code")],
         [Button.inline("👤 تفعيل VIP", b"add_vip")],
         [Button.inline("❌ إلغاء VIP", b"del_vip")],
-        [Button.inline("💎 إضافة عرض", b"add_offer")],
-        [Button.inline("🗑️ حذف عرض", b"del_offer")],
         [Button.inline("💰 إضافة نقاط", b"add_points")],
         [Button.inline("📊 الإحصائيات", b"stats")],
         [Button.inline("📢 إذاعة", b"broadcast")],
@@ -161,10 +158,9 @@ async def check_account(event):
     if not is_vip(uid):
         await event.edit(
             "<b>🔒 البوت باشتراك مدفوع</b>\n\n"
-            "لازم تفعل كود اشتراك أو تشتري من المتجر\n"
+            "لازم تفعل كود اشتراك\n"
             "كلم المطور عشان تشتري كود",
             buttons=[[Button.inline("🎟️ تفعيل كود", b"activate_vip")],
-                    [Button.inline("💎 متجر VIP", b"vip_shop")],
                     [Button.url("👨‍💻 المبرمج", f"https://t.me/{DEVELOPER}")]],
             parse_mode='html'
         )
@@ -188,7 +184,6 @@ async def start(event):
     user = await event.get_sender()
     name_user = user.first_name
     vip_status = "VIP مفعل" if is_vip(event.sender_id) else "غير مفعل"
-    points = get_points(event.sender_id)
     expire = get_vip_expire(event.sender_id)
     expire_text = f"\n<b>⏰ ينتهي:</b> {expire}" if expire else ""
 
@@ -432,17 +427,16 @@ async def broadcast(event):
 @bot.on(events.CallbackQuery(data=b"features"))
 async def features(event):
     features_text = (
-        "<b>⭐ مميزات البوت:</b>\n\n"
-        "🔒 <b>أمان كامل:</b> تأخير تلقائي بين العمليات\n"
-        "🚀 <b>سرعة عالية:</b> تنظيف مئات المحادثات بدقايق\n"
-        "📌 <b>ذكي:</b> بيتخطى الجروبات اللي انت أدمن فيها\n"
-        "🎲 <b>شامل:</b> قنوات + جروبات + خاص + بوتات\n"
-        "💎 <b>نظام نقاط:</b> اكسب نقاط على كل استخدام\n"
-        "🛍️ <b>متجر VIP:</b> اشتري اشتراك بالنقاط\n"
-        "🔒 <b>حذف من الطرفين:</b> للرسايل الجديدة في الخاص\n"
-        "⭐ <b>نظام VIP:</b> باشتراك شهري\n"
-        "🚀 <b>واجهة سهلة:</b> كل حاجة بضغطة زر\n\n"
-        "<b>⚠️ تنبيه:</b> استخدم البوت بحذر"
+        "<b>• مميزات البوت:</b>\n\n"
+        "• <b>أمان كامل:</b> تأخير تلقائي بين العمليات\n"
+        "• <b>سرعة عالية:</b> تنظيف مئات المحادثات بدقايق\n"
+        "• <b>ذكي:</b> بيتخطى الجروبات اللي انت أدمن فيها\n"
+        "• <b>شامل:</b> قنوات + جروبات + خاص + بوتات\n"
+        "• <b>نظام نقاط:</b> اكسب نقاط على كل استخدام\n"
+        "• <b>متجر VIP:</b> اشتري اشتراك بالنقاط\n"
+        "• <b>حذف من الطرفين:</b> للرسايل الجديدة في الخاص\n"
+        "• <b>نظام VIP:</b> باشتراك شهري\n"
+        "• <b>واجهة سهلة:</b> كل حاجة بضغطة زر\n\n"
     )
     await event.edit(features_text, buttons=[[Button.inline("🔙 رجوع", b"back")]], parse_mode='html')
 
